@@ -18,10 +18,10 @@ func Connect() *mongo.Database {
 	MONGO_NAME_DATABASE := os.Getenv("MONGO_NAME_DATABASE")
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(stringConnection))
 	if err != nil {
-		logger.Error("[DATABASE] Erro ao conectar ao banco de dados", err, true)
+		logger.Error("[DATABASE (Connect)] Erro ao conectar ao banco de dados", err, true)
 	}
 	if err = client.Ping(ctx, readpref.Primary()); err != nil {
-		logger.Error("[DATABASE] Erro ao conectar ao banco de dados", err, true)
+		logger.Error("[DATABASE (Ping)] Erro ao conectar ao banco de dados", err, true)
 	}
 	logger.Info("[DATABASE] Conectado ao bando de dados...")
 	return client.Database(MONGO_NAME_DATABASE)

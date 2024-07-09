@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"net/http"
+	"io"
 	"os"
-	"server/src/logger"
+	"server/src/config/logger"
 	"server/src/router"
 
+	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
 
@@ -18,6 +18,9 @@ func main() {
 	}
 	port := fmt.Sprintf(":%s", os.Getenv("ENV_PORT"))
 	logger.Info("[SERVER] Sucesso ao iniciar o servidor na porta %s", port)
-	router := router.Generate()
-	log.Fatal(http.ListenAndServe(port, router))
+	gin.DefaultWriter = io.Discard
+	rt := gin.Default()
+	userGroup := rt.Group("/api/user")
+	router.UserRouters(userGroup)
+	rt.Run(port)
 }
