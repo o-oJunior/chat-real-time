@@ -1,10 +1,8 @@
 package controller
 
 import (
-	"encoding/json"
-	"io"
 	"net/http"
-	"server/src/config/logger"
+	"server/src/config"
 	"server/src/model/dto"
 	"server/src/model/service"
 
@@ -23,32 +21,24 @@ func NewUserController(user service.UserService) UserController {
 	return &userController{user}
 }
 
-func (uc userController) CreateUser(context *gin.Context) {
-	method := context.Request.Method
-	url := context.Request.URL
-	remoteAddr := context.Request.RemoteAddr
-	logger.Info("[CONTROLLER (%s - %s)] %s Criando usuário...", method, url, remoteAddr)
-	body, err := io.ReadAll(context.Request.Body)
-	if err != nil {
-		logger.Error("Erro ao ler o dados enviados!!", err, false)
+var logger *config.Logger = config.NewLogger("controller")
+
+func (controller *userController) CreateUser(ctx *gin.Context) {
+	method := ctx.Request.Method
+	url := ctx.Request.URL
+	remoteAddr := ctx.Request.RemoteAddr
+	logger.Info("(%s - %s) %s Criando usuário...", method, url, remoteAddr)
+	var user *dto.User
+	if err := ctx.ShouldBindJSON(&user); err != nil {
+		logger.Error("Erro ao converter o JSON: %v", err)
+		panic(err)
 	}
-	var user dto.UserDTO
-	if err = json.Unmarshal(body, &user); err != nil {
-		logger.Error("Erro ao converter o JSON", err, false)
-	}
-	logger.Info("[CONTROLLER] Enviando o usuário para validação...")
-	err = uc.userService.CreateUser(user)
-	if err != nil {
-		logger.Error("[CONTROLLER] Erro ao criar o usuário!", err, false)
-		context.JSON(http.StatusBadRequest, gin.H{
-			"statusCode": 400,
-			"message":    "Ocorreu um erro ao criar o usuário!",
-		})
+
+	logger.Info("Enviando o usuário para validação...")
+	if err := controller.userService.CreateUser(user); err != nil {
+		sendError(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
-	logger.Info("[CONTROLLER] Usuário validado e criado com sucesso!")
-	context.JSON(http.StatusCreated, gin.H{
-		"statusCode": 201,
-		"message":    "Usuário criado com sucesso!",
-	})
+
+	sendSuccess(ctx, http.StatusCreated, "Usuário criado com sucesso!")
 }

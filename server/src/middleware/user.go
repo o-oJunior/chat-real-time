@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"server/src/config/logger"
+	"server/src/config"
 	"server/src/config/mongodb"
 	"server/src/controller"
 	"server/src/model/repository"
@@ -10,6 +10,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
 )
+
+var log *config.Logger = config.NewLogger("middleware")
 
 type UserMiddleware interface {
 	CreateUser(*gin.Context)
@@ -23,7 +25,7 @@ func NewUserMiddleware() UserMiddleware {
 	return &userMiddleware{}
 }
 
-func (userMiddleware) handleConnection() (controller.UserController, *mongo.Database) {
+func (userMiddleware *userMiddleware) handleConnection() (controller.UserController, *mongo.Database) {
 	database := mongodb.Connect()
 	userRepository := repository.NewUserRepository(database)
 	userService := service.NewUserService(userRepository)
@@ -31,10 +33,10 @@ func (userMiddleware) handleConnection() (controller.UserController, *mongo.Data
 	return userController, database
 }
 
-func (um *userMiddleware) CreateUser(ctx *gin.Context) {
-	logger.Info("[MIDDLEWARE (Create User)] Inicializando conexão com o banco de dados...")
-	controller, database := um.handleConnection()
+func (middleware *userMiddleware) CreateUser(ctx *gin.Context) {
+	log.Info("(Create User) Inicializando conexão com o banco de dados...")
+	controller, database := middleware.handleConnection()
 	defer mongodb.Disconnect(database)
-	um.userController = controller
-	um.userController.CreateUser(ctx)
+	middleware.userController = controller
+	middleware.userController.CreateUser(ctx)
 }
