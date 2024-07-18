@@ -4,18 +4,28 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func sendError(ctx *gin.Context, code int, message string) {
-	ctx.Header("Content-type", "application/json")
-	ctx.JSON(code, gin.H{
-		"message":    message,
-		"statusCode": code,
-	})
+type response struct {
+	Code    int         `json:"statusCode"`
+	Message string      `json:"message,omitempty"`
+	Data    interface{} `json:"data,omitempty"`
 }
 
-func sendSuccess(ctx *gin.Context, code int, data interface{}) {
+func sendError(ctx *gin.Context, code int, message string) {
+	response := response{
+		Code:    code,
+		Message: message,
+		Data:    nil,
+	}
 	ctx.Header("Content-type", "application/json")
-	ctx.JSON(code, gin.H{
-		"statusCode": code,
-		"data":       data,
-	})
+	ctx.JSON(code, response)
+}
+
+func sendSuccess(ctx *gin.Context, code int, message string, data interface{}) {
+	response := response{
+		code,
+		message,
+		data,
+	}
+	ctx.Header("Content-type", "application/json")
+	ctx.JSON(code, response)
 }

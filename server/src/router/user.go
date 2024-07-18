@@ -7,5 +7,5 @@ import (
 )
 
 func UserRouters(router *gin.RouterGroup) {
-	router.POST("/create", middleware.NewUserMiddleware().CreateUser)
+	router.POST("/user/create", middleware.NewUserMiddleware().CreateUser)
 }

@@ -30,7 +30,7 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	userGroup := rt.Group("/api/user")
-	router.UserRouters(userGroup)
+	v1 := rt.Group("/api/v1")
+	router.UserRouters(v1)
 	rt.Run(port)
 }

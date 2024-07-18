@@ -2,9 +2,11 @@ package service
 
 import (
 	"fmt"
+	"regexp"
 	"server/src/config"
 	"server/src/model/dto"
 	"server/src/model/repository"
+	"strings"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -27,6 +29,15 @@ func (userService *userService) CreateUser(user *dto.User) error {
 	logger.Info("Validando usuário...")
 	if err := userService.validateCreateUser(user); err != nil {
 		logger.Error("Erro ao validar o usuário -> %v", err)
+		return err
+	}
+
+	data, _ := userService.userRepository.FindUsername(user)
+	dataUserNameLower := strings.ToLower(data.Username)
+	userNameLower := strings.ToLower(user.Username)
+	if dataUserNameLower == userNameLower {
+		err := fmt.Errorf("username já está cadastrado")
+		logger.Error("Erro ao cadastrar o usuário: %v", err)
 		return err
 	}
 	logger.Info("Usuário válido")
@@ -71,6 +82,14 @@ func (service *userService) validateCreateUser(user *dto.User) error {
 
 	if user.Password == "" {
 		return errorParamIsRequired("password", "string")
+	}
+
+	if user.Username != "" {
+		validNameRegex := "^[a-zA-Z0-9]+$"
+		matched, _ := regexp.MatchString(validNameRegex, user.Username)
+		if !matched {
+			return fmt.Errorf("username não pode conter caracteres especiais")
+		}
 	}
 
 	return nil

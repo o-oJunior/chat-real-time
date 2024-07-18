@@ -40,5 +40,5 @@ func (controller *userController) CreateUser(ctx *gin.Context) {
 		return
 	}
 
-	sendSuccess(ctx, http.StatusCreated, "Usuário criado com sucesso!")
+	sendSuccess(ctx, http.StatusCreated, "Usuário criado com sucesso!", nil)
 }
