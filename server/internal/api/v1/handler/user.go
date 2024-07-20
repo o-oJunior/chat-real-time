@@ -1,34 +1,34 @@
-package controller
+package handler
 
 import (
 	"net/http"
-	"server/src/config"
-	"server/src/model/dto"
-	"server/src/model/service"
+	"server/internal/api/entity"
+	"server/internal/api/service"
+	"server/internal/config"
 
 	"github.com/gin-gonic/gin"
 )
 
-type UserController interface {
+type UserHandler interface {
 	CreateUser(*gin.Context)
 }
 
-type userController struct {
+type userHandler struct {
 	userService service.UserService
 }
 
-func NewUserController(user service.UserService) UserController {
-	return &userController{user}
+func NewUserHandler(user service.UserService) UserHandler {
+	return &userHandler{user}
 }
 
 var logger *config.Logger = config.NewLogger("controller")
 
-func (controller *userController) CreateUser(ctx *gin.Context) {
+func (controller *userHandler) CreateUser(ctx *gin.Context) {
 	method := ctx.Request.Method
 	url := ctx.Request.URL
 	remoteAddr := ctx.Request.RemoteAddr
 	logger.Info("(%s - %s) %s Criando usuário...", method, url, remoteAddr)
-	var user *dto.User
+	var user *entity.User
 	if err := ctx.ShouldBindJSON(&user); err != nil {
 		logger.Error("Erro ao converter o JSON: %v", err)
 		panic(err)

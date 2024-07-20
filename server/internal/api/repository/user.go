@@ -2,8 +2,8 @@ package repository
 
 import (
 	"context"
-	"server/src/config"
-	"server/src/model/dto"
+	"server/internal/api/entity"
+	"server/internal/config"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -11,8 +11,8 @@ import (
 )
 
 type UserRepository interface {
-	CreateUser(*dto.User) error
-	FindUsername(*dto.User) (dto.User, error)
+	InsertUser(*entity.User) error
+	FindUsername(*entity.User) (entity.User, error)
 }
 
 type userRepository struct {
@@ -25,7 +25,7 @@ func NewUserRepository(database *mongo.Database) UserRepository {
 
 var logger *config.Logger = config.NewLogger("repository")
 
-func (repository *userRepository) CreateUser(user *dto.User) error {
+func (repository *userRepository) InsertUser(user *entity.User) error {
 	logger.Info("Inserindo o usuário no banco de dados...")
 	collection := repository.database.Collection("users")
 	user.CreateAt = time.Now()
@@ -39,12 +39,12 @@ func (repository *userRepository) CreateUser(user *dto.User) error {
 	return nil
 }
 
-func (repository userRepository) FindUsername(user *dto.User) (dto.User, error) {
+func (repository userRepository) FindUsername(user *entity.User) (entity.User, error) {
 	logger.Info("Buscando o usuário pelo username")
 	collection := repository.database.Collection("users")
 	filterUserRegex := bson.M{"$regex": user.Username, "$options": "i"}
 	filter := bson.D{{Key: "username", Value: filterUserRegex}}
-	var result dto.User
+	var result entity.User
 	err := collection.FindOne(context.Background(), filter).Decode(&result)
 	if err != nil {
 		return result, err

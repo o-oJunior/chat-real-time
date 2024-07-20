@@ -3,7 +3,8 @@ package mongodb
 import (
 	"context"
 	"os"
-	"server/src/config"
+	"server/internal/config"
+
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -18,7 +19,14 @@ func Connect() *mongo.Database {
 	defer cancel()
 	stringConnection := os.Getenv("MONGO_STRING_CONNECTION")
 	MONGO_NAME_DATABASE := os.Getenv("MONGO_NAME_DATABASE")
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(stringConnection))
+	clientOptions := options.Client().
+		ApplyURI(stringConnection).
+		SetMaxPoolSize(100).
+		SetMinPoolSize(10).
+		SetMaxConnIdleTime(15 * time.Minute).
+		SetConnectTimeout(10 * time.Second).
+		SetServerSelectionTimeout(30 * time.Second)
+	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
 		logger.Error("(Connect) Erro ao conectar ao banco de dados: %v", err)
 		panic(err)
