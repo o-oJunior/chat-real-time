@@ -8,4 +8,5 @@ import (
 
 func UserRouters(v1 *gin.RouterGroup, handler handler.UserHandler) {
 	v1.POST("/create", handler.CreateUser)
+	v1.POST("/authentication", handler.Authentication)
 }

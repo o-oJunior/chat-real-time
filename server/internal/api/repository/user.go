@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"server/internal/api/entity"
 	"server/internal/config"
 	"time"
@@ -12,7 +13,7 @@ import (
 
 type UserRepository interface {
 	InsertUser(*entity.User) error
-	FindUsername(*entity.User) (entity.User, error)
+	FindUsername(*entity.User) (*entity.User, error)
 }
 
 type userRepository struct {
@@ -29,7 +30,6 @@ func (repository *userRepository) InsertUser(user *entity.User) error {
 	logger.Info("Inserindo o usuário no banco de dados...")
 	collection := repository.database.Collection("users")
 	user.CreateAt = time.Now()
-	user.UpdateAt = time.Now()
 	_, err := collection.InsertOne(context.Background(), user)
 	if err != nil {
 		logger.Error("Erro ao inserir o usuário: %v", err)
@@ -39,15 +39,15 @@ func (repository *userRepository) InsertUser(user *entity.User) error {
 	return nil
 }
 
-func (repository userRepository) FindUsername(user *entity.User) (entity.User, error) {
-	logger.Info("Buscando o usuário pelo username")
+func (repository userRepository) FindUsername(user *entity.User) (*entity.User, error) {
+	logger.Info("Buscando o usuário pelo username...")
 	collection := repository.database.Collection("users")
-	filterUserRegex := bson.M{"$regex": user.Username, "$options": "i"}
+	filterUserRegex := bson.M{"$regex": fmt.Sprintf("^%s$", user.Username), "$options": "i"}
 	filter := bson.D{{Key: "username", Value: filterUserRegex}}
 	var result entity.User
-	err := collection.FindOne(context.Background(), filter).Decode(&result)
-	if err != nil {
-		return result, err
+	if err := collection.FindOne(context.Background(), filter).Decode(&result); err != nil {
+		return &result, fmt.Errorf("usuário não está cadastrado")
 	}
-	return result, nil
+	logger.Info("Usuário está cadastrado, retornando...")
+	return &result, nil
 }

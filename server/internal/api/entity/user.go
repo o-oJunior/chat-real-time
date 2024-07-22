@@ -2,31 +2,42 @@ package entity
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type User struct {
+	ID           string    `json:"id,omitempty" bson:"_id,omitempty"`
 	Username     string    `json:"username" bson:"username"`
 	FirstName    string    `json:"firstName" bson:"firstName"`
 	LastName     string    `json:"lastName" bson:"lastName"`
 	Email        string    `json:"email" bson:"email"`
 	CreateAt     time.Time `json:"createAt" bson:"createAt"`
-	UpdateAt     time.Time `json:"updateAt" bson:"updateAt"`
 	Password     string    `json:"password,omitempty" bson:"password,omitempty"`
 	HashPassword string    `json:"hashPassword,omitempty" bson:"hashPassword,omitempty"`
+	Token        string    `json:"token,omitempty" bson:"token,omitempty"`
 }
 
 func errorParamIsRequired(name, typ string) error {
-	return fmt.Errorf("param: %s (type: %s) is required", name, typ)
+	return fmt.Errorf("param: %s (type: %s) é obrigatório", name, typ)
 }
 
 func (user *User) ValidateCreateUser() error {
 	if user.Username == "" && user.FirstName == "" &&
 		user.LastName == "" && user.Email == "" && user.Password == "" {
-		return fmt.Errorf("request body is empty or malformed")
+		return fmt.Errorf("o corpo da requisição está vazio ou mal formatado")
+	}
+
+	if user.Username != "" {
+		validNameRegex := "^[a-zA-Z0-9]+$"
+		matched, _ := regexp.MatchString(validNameRegex, user.Username)
+		if !matched {
+			return fmt.Errorf("username não pode conter caracteres especiais")
+		}
 	}
 
 	if user.Username == "" {
@@ -49,14 +60,6 @@ func (user *User) ValidateCreateUser() error {
 		return errorParamIsRequired("password", "string")
 	}
 
-	if user.Username != "" {
-		validNameRegex := "^[a-zA-Z0-9]+$"
-		matched, _ := regexp.MatchString(validNameRegex, user.Username)
-		if !matched {
-			return fmt.Errorf("username não pode conter caracteres especiais")
-		}
-	}
-
 	return nil
 }
 
@@ -68,4 +71,26 @@ func (user *User) EncodePassword() error {
 	user.HashPassword = string(hashPassword)
 	user.Password = ""
 	return nil
+}
+
+func (user *User) ComparePassword(hashedPassword string) error {
+	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(user.Password))
+	if err != nil {
+		return fmt.Errorf("senha inválida")
+	}
+	return nil
+}
+
+func (user *User) GenerateToken() (string, error) {
+	PRIVATE_KEY := os.Getenv("PRIVATE_KEY")
+	jwt := jwt.New(jwt.SigningMethodHS256)
+	token, err := jwt.SignedString([]byte(PRIVATE_KEY))
+	if err != nil {
+		return "", fmt.Errorf("erro a gerar o token")
+	}
+	return token, nil
+}
+
+func (user *User) GetID() string {
+	return user.ID
 }

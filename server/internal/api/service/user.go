@@ -10,6 +10,7 @@ import (
 
 type UserService interface {
 	CreateUser(user *entity.User) error
+	Authentication(user *entity.User) (*entity.User, error)
 }
 
 type userService struct {
@@ -43,4 +44,28 @@ func (userService *userService) CreateUser(user *entity.User) error {
 	}
 	err := userService.userRepository.InsertUser(user)
 	return err
+}
+
+func (userService *userService) Authentication(user *entity.User) (*entity.User, error) {
+	logger.Info("Buscando o usuário...")
+	data, err := userService.userRepository.FindUsername(user)
+	logger.Info("Validando a credenciais...")
+	if err != nil {
+		logger.Error("Erro ao autenticar o usuário: %v", err)
+		return nil, err
+	}
+	if err := user.ComparePassword(data.HashPassword); err != nil {
+		logger.Error("Erro ao validar a senha: %v", err)
+		return nil, err
+	}
+	logger.Info("Credenciais válidas, gerando o token do usuário...")
+	token, err := user.GenerateToken()
+	if err != nil {
+		logger.Error("Erro ao gerar o token: %v", err)
+		return nil, err
+	}
+	data.HashPassword = ""
+	data.Token = token
+	logger.Info("Token gerado, retornando o usuário!")
+	return data, nil
 }
