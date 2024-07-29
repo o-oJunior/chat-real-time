@@ -20,7 +20,7 @@ const Input = ({ type = "text", ...props }: IProps) => {
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
         {...props}
-        className="block w-full px-3 pt-6 pb-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:border-primary sm:text-sm placeholder-transparent"
+        className="block w-full px-3 pt-6 pb-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:border-gray-400 sm:text-sm placeholder-transparent"
       />
       {isTypePassword && (
         <>
@@ -81,7 +81,7 @@ const Input = ({ type = "text", ...props }: IProps) => {
       <label
         htmlFor={props.id || props.name}
         className={`absolute left-3 top-4 text-gray-500 pointer-events-none transform transition-all duration-200
-          ${isFocused ? "top-0 -translate-y-3 text-xs text-primary" : "top-2 text-base"}
+          ${props.value || isFocused ? "top-0 -translate-y-3 text-sm" : "top-2 text-base"}
         `}
       >
         {props.placeholder}
