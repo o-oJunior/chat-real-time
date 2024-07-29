@@ -6,12 +6,8 @@ interface IProps extends React.InputHTMLAttributes<HTMLInputElement> {
 
 const Input = ({ type = "text", ...props }: IProps) => {
   const [isFocused, setIsFocused] = useState(false)
-  const [value, setValue] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const isTypePassword = type === "password"
-  const styleDefault =
-    "block w-full px-3 pt-6 pb-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:border-primary sm:text-sm placeholder-transparent"
-  const style = props.className ? props.className : styleDefault
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword)
@@ -24,7 +20,7 @@ const Input = ({ type = "text", ...props }: IProps) => {
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
         {...props}
-        className={style}
+        className="block w-full px-3 pt-6 pb-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:border-primary sm:text-sm placeholder-transparent"
       />
       {isTypePassword && (
         <>
@@ -85,7 +81,7 @@ const Input = ({ type = "text", ...props }: IProps) => {
       <label
         htmlFor={props.id || props.name}
         className={`absolute left-3 top-4 text-gray-500 pointer-events-none transform transition-all duration-200
-          ${value || isFocused ? "top-0 -translate-y-3 text-xs text-primary" : "top-2 text-base"}
+          ${isFocused ? "top-0 -translate-y-3 text-xs text-primary" : "top-2 text-base"}
         `}
       >
         {props.placeholder}
