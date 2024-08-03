@@ -1,11 +1,10 @@
 import ApiPostUser from "@/api/v1/post/user"
 import Head from "next/head"
-import { ChangeEvent, FormEvent, use, useState } from "react"
-import Input from "../components/input/input"
-import { useDispatch } from "react-redux"
-import { addUserData, IUser, useUser } from "../redux/user/slice"
+import { ChangeEvent, FormEvent, useEffect, useState } from "react"
+import Input from "../../components/input/input"
+import { IUser, useUser } from "../../redux/user/slice"
 import { useRouter } from "next/router"
-import { useAppSelector } from "../redux/hook"
+import { useAppSelector } from "../../redux/hook"
 
 type UserAuth = {
   username: string
@@ -24,12 +23,13 @@ const Login = () => {
   const [userAuth, setUser] = useState<UserAuth>(initialValue)
   const [messageError, setMessageError] = useState<string>("")
   const { user } = useAppSelector(useUser)
-  const dispatch = useDispatch()
   const router = useRouter()
+
   const handleChangeInput = (event: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target
     setUser({ ...userAuth, [name]: value })
   }
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     if (userAuth.username.trim() == "" || userAuth.password == "") {
@@ -40,12 +40,15 @@ const Login = () => {
       return setMessageError(result.message)
     }
     setMessageError("")
-    dispatch(addUserData(result.data))
     router.push("/")
   }
-  if (user.username !== "") {
-    router.push("/")
-  }
+
+  useEffect(() => {
+    if (user.username !== "") {
+      router.push("/")
+    }
+  }, [user])
+
   return (
     <>
       <Head>
