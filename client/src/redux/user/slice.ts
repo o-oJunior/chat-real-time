@@ -6,7 +6,7 @@ export interface IUser {
   firstName: string
   lastName: string
   email: string
-  createdAt: string
+  createAt: string
 }
 
 export interface IUserData {
@@ -19,7 +19,7 @@ export const initialValueUser: IUser = {
   firstName: "",
   lastName: "",
   email: "",
-  createdAt: "",
+  createAt: "",
 }
 
 const initialState: IUserData = {
