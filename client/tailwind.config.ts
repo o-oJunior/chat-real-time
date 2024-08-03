@@ -10,7 +10,7 @@ const config: Config = {
     extend: {
       colors: {
         primary: "#6cccfc",
-        "primary-hover": "#64c4fc",
+        "primary-hover": "#54b3e9",
         "color-error-primary": "rgba(208, 2, 27, 0.8)",
         "color-error-secondary": "rgba(208, 2, 27, 0.3)",
       },
