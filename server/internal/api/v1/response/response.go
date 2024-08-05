@@ -1,4 +1,4 @@
-package handler
+package response
 
 import (
 	"github.com/gin-gonic/gin"
@@ -10,7 +10,7 @@ type response struct {
 	Data    interface{} `json:"data,omitempty"`
 }
 
-func sendError(ctx *gin.Context, code int, message string) {
+func SendError(ctx *gin.Context, code int, message string) {
 	response := response{
 		Code:    code,
 		Message: message,
@@ -20,7 +20,7 @@ func sendError(ctx *gin.Context, code int, message string) {
 	ctx.JSON(code, response)
 }
 
-func sendSuccess(ctx *gin.Context, code int, message string, data interface{}) {
+func SendSuccess(ctx *gin.Context, code int, message string, data interface{}) {
 	response := response{
 		code,
 		message,

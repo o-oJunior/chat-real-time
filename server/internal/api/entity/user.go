@@ -2,11 +2,9 @@ package entity
 
 import (
 	"fmt"
-	"os"
 	"regexp"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -79,16 +77,6 @@ func (user *User) ComparePassword(hashedPassword string) error {
 		return fmt.Errorf("senha inválida")
 	}
 	return nil
-}
-
-func (user *User) GenerateToken() (string, error) {
-	PRIVATE_KEY := os.Getenv("PRIVATE_KEY")
-	jwt := jwt.New(jwt.SigningMethodHS256)
-	token, err := jwt.SignedString([]byte(PRIVATE_KEY))
-	if err != nil {
-		return "", fmt.Errorf("erro a gerar o token")
-	}
-	return token, nil
 }
 
 func (user *User) GetID() string {
