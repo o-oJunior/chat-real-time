@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"server/internal/api/entity"
 	"server/internal/api/service"
+	"server/internal/api/v1/middleware"
+	"server/internal/api/v1/response"
 	"server/internal/config"
 	"time"
 
@@ -42,10 +44,10 @@ func (handler *userHandler) CreateUser(ctx *gin.Context) {
 	user := handler.converterJSON(ctx, "Criando usuário...")
 	logger.Info("Enviando o usuário para validação...")
 	if err := handler.userService.CreateUser(user); err != nil {
-		sendError(ctx, http.StatusBadRequest, err.Error())
+		response.SendError(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
-	sendSuccess(ctx, http.StatusCreated, "Usuário criado com sucesso!", nil)
+	response.SendSuccess(ctx, http.StatusCreated, "Usuário criado com sucesso!", nil)
 }
 
 func (handler *userHandler) Authentication(ctx *gin.Context) {
@@ -53,10 +55,16 @@ func (handler *userHandler) Authentication(ctx *gin.Context) {
 	logger.Info("Enviando o usuário para a validação...")
 	data, err := handler.userService.Authentication(user)
 	if err != nil {
-		sendError(ctx, http.StatusBadRequest, err.Error())
+		response.SendError(ctx, http.StatusUnauthorized, err.Error())
 		return
 	}
-	ctx.SetCookie("token", data.Token, int(time.Hour*24), "/", "", true, true)
-	data.Token = ""
-	sendSuccess(ctx, http.StatusOK, "", data)
+	newMiddlewareToken := middleware.NewMiddlewareToken()
+	token, err := newMiddlewareToken.Generate(data)
+	if err != nil {
+		response.SendError(ctx, http.StatusInternalServerError, err.Error())
+	}
+	logger.Info("Token gerado, será armazenado nos cookies")
+	ctx.SetSameSite(http.SameSiteNoneMode)
+	ctx.SetCookie("token", token, int(time.Hour*24), "/", "", true, true)
+	response.SendSuccess(ctx, http.StatusOK, "login efetuado com sucesso!", nil)
 }

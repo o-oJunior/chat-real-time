@@ -52,20 +52,13 @@ func (userService *userService) Authentication(user *entity.User) (*entity.User,
 	logger.Info("Validando a credenciais...")
 	if err != nil {
 		logger.Error("Erro ao autenticar o usuário: %v", err)
-		return nil, err
+		return nil, fmt.Errorf("usuário e/ou senha inválido(s)")
 	}
 	if err := user.ComparePassword(data.HashPassword); err != nil {
 		logger.Error("Erro ao validar a senha: %v", err)
-		return nil, err
+		return nil, fmt.Errorf("usuário e/ou senha inválido(s)")
 	}
-	logger.Info("Credenciais válidas, gerando o token do usuário...")
-	token, err := user.GenerateToken()
-	if err != nil {
-		logger.Error("Erro ao gerar o token: %v", err)
-		return nil, err
-	}
+	logger.Info("Credenciais válidas")
 	data.HashPassword = ""
-	data.Token = token
-	logger.Info("Token gerado, retornando o usuário!")
 	return data, nil
 }

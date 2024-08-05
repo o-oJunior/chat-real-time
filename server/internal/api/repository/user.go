@@ -46,8 +46,8 @@ func (repository userRepository) FindUsername(user *entity.User) (*entity.User, 
 	filter := bson.D{{Key: "username", Value: filterUserRegex}}
 	var result entity.User
 	if err := collection.FindOne(context.Background(), filter).Decode(&result); err != nil {
-		return &result, fmt.Errorf("usuário não está cadastrado")
+		return &result, fmt.Errorf("usuário não foi encontrado")
 	}
-	logger.Info("Usuário está cadastrado, retornando...")
+	logger.Info("Usuário foi encontrado, retornando...")
 	return &result, nil
 }
