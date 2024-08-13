@@ -14,22 +14,22 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-type Token interface{
+type Token interface {
 	Generate(user *entity.User) (string, error)
 	ValidateCookie(ctx *gin.Context)
 }
 
-type token struct{
+type token struct {
 	PRIVATE_KEY []byte
 }
 
 type customClaims struct {
-	ID           string    `json:"id,omitempty"`
-	Username     string    `json:"username"`
-	FirstName    string    `json:"firstName"`
-	LastName     string    `json:"lastName"`
-	Email        string    `json:"email"`
-	CreateAt     time.Time `json:"createAt"`
+	ID        string `json:"id,omitempty"`
+	Username  string `json:"username"`
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
+	Email     string `json:"email"`
+	CreateAt  int64  `json:"createAt"`
 	jwt.StandardClaims
 }
 
@@ -40,16 +40,16 @@ func NewMiddlewareToken() Token {
 
 var logger *config.Logger = config.NewLogger("middleware token")
 
-func (tkn token) Generate(user *entity.User) (string, error){
+func (tkn token) Generate(user *entity.User) (string, error) {
 	claims := customClaims{
-		ID: user.ID,
-		Username: user.Username,
+		ID:        user.ID,
+		Username:  user.Username,
 		FirstName: user.FirstName,
-		LastName: user.LastName,
-		Email: user.Email,
-		CreateAt: user.CreateAt,
+		LastName:  user.LastName,
+		Email:     user.Email,
+		CreateAt:  user.CreateAt,
 		StandardClaims: jwt.StandardClaims{
-			IssuedAt: time.Now().Unix(),
+			IssuedAt:  time.Now().Unix(),
 			ExpiresAt: time.Now().Add(time.Hour * 24).Unix(),
 		},
 	}
@@ -65,39 +65,41 @@ func (tkn token) ValidateCookie(ctx *gin.Context) {
 	logger.Info("Conferindo se token é válido...")
 	cookie, err := ctx.Cookie("token")
 	if err != nil {
-		response.SendError(ctx, http.StatusUnauthorized, "o token não veio nos cookies")
+		logger.Error("Token não veio nos cookies")
+		response.SendError(ctx, http.StatusUnauthorized, "Token não veio nos cookies")
 		ctx.Abort()
-		return 
+		return
 	}
 	token, err := jwt.Parse(cookie, func(jwtToken *jwt.Token) (interface{}, error) {
-        if _, ok := jwtToken.Method.(*jwt.SigningMethodHMAC); !ok {
-            return nil, fmt.Errorf("método de assinatura inesperado: %v", jwtToken.Header["alg"])
-        }
-        return tkn.PRIVATE_KEY, nil
-    })
+		if _, ok := jwtToken.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("método de assinatura inesperado: %v", jwtToken.Header["alg"])
+		}
+		return tkn.PRIVATE_KEY, nil
+	})
 
 	if err != nil {
-		logger.Error("Erro token: %v", err)
+		logger.Error("Token expirado")
 		response.SendError(ctx, http.StatusUnauthorized, "Token expirado")
 		ctx.Abort()
-		return 
+		return
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
-    if !ok || !token.Valid {
-		logger.Error("Erro token claims: %v", err)
+	if !ok || !token.Valid {
+		logger.Error("Token inválido")
 		response.SendError(ctx, http.StatusUnauthorized, "Token inválido")
 		ctx.Abort()
-        return
-    }
+		return
+	}
 	logger.Info("Token válido, será retornado os dados do usuário")
 	data := bson.M{
-		"id": claims["id"],
-		"username": claims["username"],
+		"id":        claims["id"],
+		"username":  claims["username"],
 		"firstName": claims["firstName"],
-		"lastName": claims["lastName"],
-		"email": claims["email"],
-		"createAt": claims["createAt"],
+		"lastName":  claims["lastName"],
+		"email":     claims["email"],
+		"createAt":  claims["createAt"],
+		"expiresAt": claims["exp"],
 	}
 	response.SendSuccess(ctx, http.StatusOK, "", data)
 }

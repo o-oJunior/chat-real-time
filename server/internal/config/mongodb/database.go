@@ -35,7 +35,7 @@ func Connect() *mongo.Database {
 		logger.Error("(Ping) Erro ao conectar ao banco de dados: %v", err)
 		panic(err)
 	}
-	logger.Info("Conectado ao bando de dados...")
+	logger.Info("Conectado ao banco de dados...")
 	return client.Database(MONGO_NAME_DATABASE)
 }
 

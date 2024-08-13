@@ -33,7 +33,7 @@ func (userService *userService) CreateUser(user *entity.User) error {
 	dataUserNameLower := strings.ToLower(data.Username)
 	userNameLower := strings.ToLower(user.Username)
 	if dataUserNameLower == userNameLower {
-		err := fmt.Errorf("username já está cadastrado")
+		err := fmt.Errorf("nome de usuário já cadastrado")
 		logger.Error("Erro ao cadastrar o usuário: %v", err)
 		return err
 	}
