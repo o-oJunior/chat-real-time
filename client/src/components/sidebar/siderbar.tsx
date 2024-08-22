@@ -1,7 +1,10 @@
 import React from "react"
 import { useRouter } from "next/router"
+import { useAppSelector } from "@/redux/hook"
+import { useUser } from "@/redux/user/slice"
 
 const Sidebar = () => {
+  const { user } = useAppSelector(useUser)
   const router = useRouter()
 
   const handleNavigation = (path: string) => {
@@ -9,10 +12,10 @@ const Sidebar = () => {
   }
 
   return (
-    <div className="w-20 h-screen bg-primary text-white flex flex-col items-center py-4 space-y-6">
+    <div className="w-20 h-screen bg-primary text-white flex flex-col justify-between items-center py-4 space-y-6">
       <h2 className="text-2xl font-bold text-white">Chat</h2>
 
-      <div className="flex flex-col w-full px-1 space-y-4">
+      <div className="flex flex-col h-full w-full px-1 space-y-4">
         <div className="relative group flex items-center justify-center">
           <button
             className={`w-full p-2 flex items-center justify-center hover:bg-primary-hover rounded-lg ${
@@ -93,6 +96,27 @@ const Sidebar = () => {
           </button>
           <span className="absolute left-full ml-2 flex items-center hidden group-hover:flex bg-primary-hover text-white text-xs rounded px-2 py-1 whitespace-nowrap">
             Grupos
+          </span>
+        </div>
+      </div>
+
+      <div className="flex flex-col w-full px-1 space-y-4">
+        <div className="relative group flex items-center justify-center">
+          <button
+            className="w-full p-2 flex items-center justify-center hover:bg-primary-hover rounded-lg"
+            aria-label="Usuário Logado"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6"
+              fill="currentColor"
+              viewBox="0 0 448 512"
+            >
+              <path d="M224 256A128 128 0 1 0 224 0a128 128 0 1 0 0 256zm-45.7 48C79.8 304 0 383.8 0 482.3C0 498.7 13.3 512 29.7 512l388.6 0c16.4 0 29.7-13.3 29.7-29.7C448 383.8 368.2 304 269.7 304l-91.4 0z" />
+            </svg>
+          </button>
+          <span className="absolute left-full ml-2 flex items-center hidden group-hover:flex bg-primary-hover text-white text-xs rounded px-2 py-1 whitespace-nowrap">
+            Olá, {user.username}!
           </span>
         </div>
       </div>

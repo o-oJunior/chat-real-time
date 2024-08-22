@@ -2,9 +2,9 @@ import { useRouter } from "next/router"
 import { useEffect } from "react"
 import { addUserData, useUser } from "../redux/user/slice"
 import { useDispatch } from "react-redux"
-import API_VALIDATE_AUTH from "@/api/v1/get/user"
 import { useAppSelector } from "@/redux/hook"
 import Sidebar from "@/components/sidebar/siderbar"
+import API_V1_USER from "@/api/v1/user"
 
 const Authentication = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAppSelector(useUser)
@@ -12,12 +12,17 @@ const Authentication = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter()
 
   useEffect(() => {
-    validateAuthentication()
+    const nowMS = new Date().getTime()
+    const expiresAt = user.expiresAt * 1000
+    if (user.username == "" || nowMS >= expiresAt) {
+      validateAuthentication()
+    }
     validatePageNotFound()
-  }, [router.pathname])
+  }, [user, router.pathname])
 
   const validateAuthentication = async () => {
-    const result = await API_VALIDATE_AUTH()
+    const v1 = new API_V1_USER()
+    const result = await v1.validateAuthentication()
     if (!result.data || result.statusCode !== 200) {
       return router.push("/login")
     }
@@ -31,8 +36,14 @@ const Authentication = ({ children }: { children: React.ReactNode }) => {
   }
   return (
     <>
-      {user.username !== "" && router.pathname !== "/404" && <Sidebar />}
-      {children}
+      {user.username !== "" ? (
+        <div className="flex row w-full">
+          <div className="mr-4">{router.pathname !== "/404" && <Sidebar />}</div>
+          <div className="py-5">{children}</div>
+        </div>
+      ) : (
+        <div>{children}</div>
+      )}
     </>
   )
 }

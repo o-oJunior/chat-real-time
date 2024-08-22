@@ -6,6 +6,7 @@ import (
 	"server/internal/api/repository"
 	"server/internal/config"
 	"strings"
+	"time"
 )
 
 type UserService interface {
@@ -33,7 +34,7 @@ func (userService *userService) CreateUser(user *entity.User) error {
 	dataUserNameLower := strings.ToLower(data.Username)
 	userNameLower := strings.ToLower(user.Username)
 	if dataUserNameLower == userNameLower {
-		err := fmt.Errorf("username já está cadastrado")
+		err := fmt.Errorf("nome de usuário já cadastrado")
 		logger.Error("Erro ao cadastrar o usuário: %v", err)
 		return err
 	}
@@ -60,5 +61,6 @@ func (userService *userService) Authentication(user *entity.User) (*entity.User,
 	}
 	logger.Info("Credenciais válidas")
 	data.HashPassword = ""
+	data.CreateAt = time.UnixMilli(data.CreateAtMilliseconds).UTC().Format(time.RFC3339)
 	return data, nil
 }
