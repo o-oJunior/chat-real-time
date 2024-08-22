@@ -6,6 +6,7 @@ import (
 	"server/internal/api/repository"
 	"server/internal/config"
 	"strings"
+	"time"
 )
 
 type UserService interface {
@@ -60,5 +61,6 @@ func (userService *userService) Authentication(user *entity.User) (*entity.User,
 	}
 	logger.Info("Credenciais válidas")
 	data.HashPassword = ""
+	data.CreateAt = time.UnixMilli(data.CreateAtMilliseconds).UTC().Format(time.RFC3339)
 	return data, nil
 }

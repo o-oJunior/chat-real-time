@@ -29,7 +29,7 @@ type customClaims struct {
 	FirstName string `json:"firstName"`
 	LastName  string `json:"lastName"`
 	Email     string `json:"email"`
-	CreateAt  int64  `json:"createAt"`
+	CreateAt  string `json:"createAt"`
 	jwt.StandardClaims
 }
 

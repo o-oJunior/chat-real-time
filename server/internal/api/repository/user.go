@@ -29,7 +29,7 @@ var logger *config.Logger = config.NewLogger("repository")
 func (repository *userRepository) InsertUser(user *entity.User) error {
 	logger.Info("Inserindo o usuário no banco de dados...")
 	collection := repository.database.Collection("users")
-	user.CreateAt = time.Now().UnixMilli()
+	user.CreateAtMilliseconds = time.Now().UnixMilli()
 	_, err := collection.InsertOne(context.Background(), user)
 	if err != nil {
 		logger.Error("Erro ao inserir o usuário: %v", err)

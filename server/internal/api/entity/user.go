@@ -8,15 +8,16 @@ import (
 )
 
 type User struct {
-	ID           string `json:"id,omitempty" bson:"_id,omitempty"`
-	Username     string `json:"username" bson:"username"`
-	FirstName    string `json:"firstName" bson:"firstName"`
-	LastName     string `json:"lastName" bson:"lastName"`
-	Email        string `json:"email" bson:"email"`
-	CreateAt     int64  `json:"createAt" bson:"createAt"`
-	Password     string `json:"password,omitempty" bson:"password,omitempty"`
-	HashPassword string `json:"hashPassword,omitempty" bson:"hashPassword,omitempty"`
-	Token        string `json:"token,omitempty" bson:"token,omitempty"`
+	ID                   string `json:"id,omitempty" bson:"_id,omitempty"`
+	Username             string `json:"username" bson:"username"`
+	FirstName            string `json:"firstName" bson:"firstName"`
+	LastName             string `json:"lastName" bson:"lastName"`
+	Email                string `json:"email" bson:"email"`
+	CreateAtMilliseconds int64  `bson:"createAt"`
+	CreateAt             string `json:"createAt"`
+	Password             string `json:"password,omitempty" bson:"password,omitempty"`
+	HashPassword         string `json:"hashPassword,omitempty" bson:"hashPassword,omitempty"`
+	Token                string `json:"token,omitempty" bson:"token,omitempty"`
 }
 
 func errorParamIsRequired(name string) error {
