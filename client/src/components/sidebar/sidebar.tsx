@@ -1,14 +1,33 @@
-import React from "react"
+import React, { useState } from "react"
 import { useRouter } from "next/router"
 import { useAppSelector } from "@/redux/hook"
-import { useUser } from "@/redux/user/slice"
+import { userLogout, useUser } from "@/redux/user/slice"
+import API_V1_USER from "@/api/v1/user"
+import { IResponse } from "@/interfaces/response"
+import { useDispatch } from "react-redux"
 
 const Sidebar = () => {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const { user } = useAppSelector(useUser)
   const router = useRouter()
+  const dispatch = useDispatch()
 
   const handleNavigation = (path: string) => {
     router.push(path)
+  }
+
+  const handleLogout = async () => {
+    const v1 = new API_V1_USER()
+    const result: IResponse = await v1.logout()
+    if (result.statusCode !== 200) {
+      return alert("Erro ao sair da conta")
+    }
+    dispatch(userLogout())
+    handleNavigation("/login")
+  }
+
+  const toggleDropdown = () => {
+    setIsDropdownOpen(!isDropdownOpen)
   }
 
   return (
@@ -105,6 +124,7 @@ const Sidebar = () => {
           <button
             className="w-full p-2 flex items-center justify-center hover:bg-primary-hover rounded-lg"
             aria-label="Usuário Logado"
+            onClick={toggleDropdown}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -115,9 +135,25 @@ const Sidebar = () => {
               <path d="M224 256A128 128 0 1 0 224 0a128 128 0 1 0 0 256zm-45.7 48C79.8 304 0 383.8 0 482.3C0 498.7 13.3 512 29.7 512l388.6 0c16.4 0 29.7-13.3 29.7-29.7C448 383.8 368.2 304 269.7 304l-91.4 0z" />
             </svg>
           </button>
-          <span className="absolute left-full ml-2 flex items-center hidden group-hover:flex bg-primary-hover text-white text-xs rounded px-2 py-1 whitespace-nowrap">
-            Olá, {user.username}!
-          </span>
+          {isDropdownOpen ? (
+            <div className="absolute left-full ml-2 mb-10 transform mt-2 w-48 bg-white rounded-md shadow-lg z-10">
+              <div className="py-2">
+                <span className="block px-4 py-2 text-gray-700 text-sm border-b border-gray-200">
+                  Olá, {user.username}!
+                </span>
+                <button
+                  onClick={handleLogout}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  Sair
+                </button>
+              </div>
+            </div>
+          ) : (
+            <span className="absolute left-full ml-2 flex items-center hidden group-hover:flex bg-primary-hover text-white text-xs rounded px-2 py-1 whitespace-nowrap">
+              Olá, {user.username}!
+            </span>
+          )}
         </div>
       </div>
     </div>

@@ -3,7 +3,7 @@ import { useEffect } from "react"
 import { addUserData, useUser } from "../redux/user/slice"
 import { useDispatch } from "react-redux"
 import { useAppSelector } from "@/redux/hook"
-import Sidebar from "@/components/sidebar/siderbar"
+import Sidebar from "@/components/sidebar/sidebar"
 import API_V1_USER from "@/api/v1/user"
 
 const Authentication = ({ children }: { children: React.ReactNode }) => {
