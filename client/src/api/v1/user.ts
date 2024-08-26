@@ -49,4 +49,15 @@ export default class API_V1_USER {
     })
     return result.json()
   }
+
+  async logout(){
+    const result = await fetch(`${this.BASE_URL_API_V1}/user/logout`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include"
+    })
+    return result.json()
+  }
 }

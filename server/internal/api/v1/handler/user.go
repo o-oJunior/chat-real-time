@@ -14,7 +14,8 @@ import (
 
 type UserHandler interface {
 	CreateUser(*gin.Context)
-	Authentication(ctx *gin.Context)
+	Authentication(*gin.Context)
+	Logout(*gin.Context)
 }
 
 type userHandler struct {
@@ -67,4 +68,11 @@ func (handler *userHandler) Authentication(ctx *gin.Context) {
 	ctx.SetSameSite(http.SameSiteNoneMode)
 	ctx.SetCookie("token", token, int(time.Hour*24), "/", "", true, true)
 	response.SendSuccess(ctx, http.StatusOK, "login efetuado com sucesso!", nil)
+}
+
+func (handler *userHandler) Logout(ctx *gin.Context) {
+	logger.Info("Realizando o logout")
+	ctx.SetSameSite(http.SameSiteNoneMode)
+	ctx.SetCookie("token", "", -1, "/", "", true, true)
+	response.SendSuccess(ctx, http.StatusOK, "logout efetuado com sucesso!", nil)
 }
