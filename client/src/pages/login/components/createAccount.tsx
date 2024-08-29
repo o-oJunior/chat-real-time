@@ -21,6 +21,7 @@ type CreateUser = {
   email: string
   password: string
   confirmPassword: string
+  description: string
 }
 
 const initialValue = {
@@ -30,6 +31,7 @@ const initialValue = {
   email: "",
   password: "",
   confirmPassword: "",
+  description: "Disponível",
 }
 
 const CreateAccount = ({ toggleAuthentication }: Props) => {

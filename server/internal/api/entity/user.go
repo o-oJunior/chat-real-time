@@ -13,8 +13,9 @@ type User struct {
 	FirstName            string `json:"firstName" bson:"firstName"`
 	LastName             string `json:"lastName" bson:"lastName"`
 	Email                string `json:"email" bson:"email"`
-	CreateAtMilliseconds int64  `bson:"createAt"`
-	CreateAt             string `json:"createAt"`
+	Description          string `json:"description" bson:"description"`
+	CreateAtMilliseconds int64  `json:"omitempty" bson:"createAt"`
+	CreateAt             string `json:"createAt" bson:"omitempty"`
 	Password             string `json:"password,omitempty" bson:"password,omitempty"`
 	HashPassword         string `json:"hashPassword,omitempty" bson:"hashPassword,omitempty"`
 	Token                string `json:"token,omitempty" bson:"token,omitempty"`
