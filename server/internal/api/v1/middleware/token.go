@@ -29,6 +29,7 @@ type customClaims struct {
 	FirstName   string `json:"firstName"`
 	LastName    string `json:"lastName"`
 	Email       string `json:"email"`
+	Status      string `json:"status"`
 	Description string `json:"description"`
 	CreateAt    string `json:"createAt"`
 	jwt.StandardClaims
@@ -48,6 +49,7 @@ func (tkn token) Generate(user *entity.User) (string, error) {
 		FirstName:   user.FirstName,
 		LastName:    user.LastName,
 		Email:       user.Email,
+		Status:      user.Status,
 		Description: user.Description,
 		CreateAt:    user.CreateAt,
 		StandardClaims: jwt.StandardClaims{
@@ -100,6 +102,7 @@ func (tkn token) ValidateCookie(ctx *gin.Context) {
 		"firstName":   claims["firstName"],
 		"lastName":    claims["lastName"],
 		"email":       claims["email"],
+		"status":      claims["status"],
 		"description": claims["description"],
 		"createAt":    claims["createAt"],
 		"expiresAt":   claims["exp"],

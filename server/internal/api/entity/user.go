@@ -13,6 +13,7 @@ type User struct {
 	FirstName            string `json:"firstName" bson:"firstName"`
 	LastName             string `json:"lastName" bson:"lastName"`
 	Email                string `json:"email" bson:"email"`
+	Status               string `json:"status" bson:"status"`
 	Description          string `json:"description" bson:"description"`
 	CreateAtMilliseconds int64  `json:"omitempty" bson:"createAt"`
 	CreateAt             string `json:"createAt" bson:"omitempty"`
