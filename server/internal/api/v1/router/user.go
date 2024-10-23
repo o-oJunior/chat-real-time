@@ -9,6 +9,7 @@ import (
 
 func UserRouters(v1 *gin.RouterGroup, handler handler.UserHandler) {
 	newMiddlewareToken := middleware.NewMiddlewareToken()
+	v1.GET("/", handler.GetUsers)
 	v1.POST("/create", handler.CreateUser)
 	v1.POST("/authentication", handler.Authentication)
 	v1.GET("/validate/authentication", newMiddlewareToken.ValidateCookie)
