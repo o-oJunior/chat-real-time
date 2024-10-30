@@ -16,7 +16,7 @@ import (
 type UserRepository interface {
 	InsertUser(*entity.User) error
 	FindUsername(*entity.User) (*entity.User, error)
-	GetUsersAndTotalExceptID(primitive.ObjectID, string, *options.FindOptions) (*[]entity.User, int64, error)
+	GetUsersAndTotalExceptID(primitive.ObjectID, string, int, int) (*[]entity.User, int64, error)
 }
 
 type userRepository struct {
@@ -55,7 +55,7 @@ func (repository *userRepository) FindUsername(user *entity.User) (*entity.User,
 	return &result, nil
 }
 
-func (repository *userRepository) GetUsersAndTotalExceptID(id primitive.ObjectID, username string, options *options.FindOptions) (*[]entity.User, int64, error) {
+func (repository *userRepository) GetUsersAndTotalExceptID(id primitive.ObjectID, username string, limit int, offset int) (*[]entity.User, int64, error) {
 	logger.Info("Buscando usuários...")
 	collection := repository.database.Collection("users")
 	filter := bson.M{
@@ -64,6 +64,15 @@ func (repository *userRepository) GetUsersAndTotalExceptID(id primitive.ObjectID
 			"$regex": primitive.Regex{Pattern: username, Options: "i"},
 		},
 	}
+	options := options.
+		Find().
+		SetLimit(int64(limit)).
+		SetSkip(int64(offset)).
+		SetSort(bson.D{{Key: "username", Value: 1}}).
+		SetCollation(&options.Collation{
+			Locale:   "en",
+			Strength: 1,
+		})
 	cursor, err := collection.Find(context.Background(), filter, options)
 	if err != nil {
 		logger.Error("Erro ao buscar os usuários: %v", err)

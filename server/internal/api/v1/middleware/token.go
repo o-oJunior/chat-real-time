@@ -62,18 +62,18 @@ func (tkn token) ValidateCookie(ctx *gin.Context) {
 	logger.Info("(Token) Conferindo se token é válido...")
 	cookie, err := ctx.Cookie("token")
 	if err != nil {
-		logger.Error("(Token) Token não veio nos cookies")
-		response.SendError(ctx, http.StatusUnauthorized, "Token não veio nos cookies")
+		logger.Warn("(Token) Token não estava armazenado nos cookies")
+		response.SendError(ctx, http.StatusUnauthorized, "access unauthorized")
 		ctx.Abort()
 		return
 	}
-	data, err := tkn.DecodeToken(cookie)
+	_, err = tkn.DecodeToken(cookie)
 	if err != nil {
-		logger.Error("Erro ao decifrar o token: %v", err)
+		response.SendError(ctx, http.StatusUnauthorized, "access unauthorized")
 		ctx.Abort()
 		return
 	}
-	response.SendSuccess(ctx, http.StatusOK, "", data)
+	ctx.Next()
 }
 
 func (tkn token) DecodeToken(cookie string) (primitive.M, error) {
@@ -94,7 +94,7 @@ func (tkn token) DecodeToken(cookie string) (primitive.M, error) {
 		logger.Error("(Token) Token inválido")
 		return nil, err
 	}
-	logger.Info("(Token) Token válido, será retornado os dados do usuário")
+	logger.Info("(Token) Token válido")
 	data := bson.M{
 		"id":          claims["id"],
 		"username":    claims["username"],

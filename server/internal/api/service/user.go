@@ -10,11 +10,10 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type UserService interface {
-	GetUsersExceptID(string, string, *options.FindOptions) (*[]entity.User, int64, error)
+	GetUsersExceptID(string, string, int, int) (*[]entity.User, int64, error)
 	CreateUser(*entity.User) error
 	Authentication(*entity.User) (*entity.User, error)
 }
@@ -29,12 +28,12 @@ func NewUserService(user repository.UserRepository) UserService {
 
 var logger *config.Logger = config.NewLogger("service")
 
-func (service *userService) GetUsersExceptID(username string, cookieToken string, options *options.FindOptions) (*[]entity.User, int64, error) {
+func (service *userService) GetUsersExceptID(username string, cookieToken string, limit int, offset int) (*[]entity.User, int64, error) {
 	middlewareToken := middleware.NewMiddlewareToken()
 	data, err := middlewareToken.DecodeToken(cookieToken)
 	if err != nil {
 		logger.Error("Erro ao decodificar o token: %v", err)
-		return nil, 0, err
+		return nil, 0, fmt.Errorf("access unauthorized")
 	}
 	idString := data["id"].(string)
 	id, err := primitive.ObjectIDFromHex(idString)
@@ -42,7 +41,7 @@ func (service *userService) GetUsersExceptID(username string, cookieToken string
 		logger.Error("Erro ao converter o ID string para ObjectID: %v", err)
 		return nil, 0, err
 	}
-	users, totalUsers, err := service.userRepository.GetUsersAndTotalExceptID(id, username, options)
+	users, totalUsers, err := service.userRepository.GetUsersAndTotalExceptID(id, username, limit, offset)
 	if err != nil {
 		logger.Error("Erro ao buscar os usuários: %v", err)
 		return nil, 0, err
