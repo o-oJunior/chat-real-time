@@ -40,7 +40,7 @@ const Sidebar = () => {
             className={`w-full p-2 flex items-center justify-center hover:bg-primary-hover rounded-lg ${
               router.pathname === "/contatos" ? "bg-primary-hover" : ""
             }`}
-            onClick={() => handleNavigation("/contatos")}
+            onClick={() => handleNavigation("/contacts")}
             aria-label="Contatos"
           >
             <svg
