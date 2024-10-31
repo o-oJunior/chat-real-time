@@ -8,36 +8,18 @@ import (
 )
 
 type User struct {
-	ID                   string `json:"id,omitempty" bson:"_id,omitempty"`
-	Username             string `json:"username" bson:"username"`
-	FirstName            string `json:"firstName" bson:"firstName"`
-	LastName             string `json:"lastName" bson:"lastName"`
-	Email                string `json:"email" bson:"email"`
-	Status               string `json:"status" bson:"status"`
-	Description          string `json:"description" bson:"description"`
-	CreateAtMilliseconds int64  `json:"omitempty" bson:"createAt"`
-	CreateAt             string `json:"createAt" bson:"omitempty"`
-	Password             string `json:"password,omitempty" bson:"password,omitempty"`
-	HashPassword         string `json:"hashPassword,omitempty" bson:"hashPassword,omitempty"`
-	Token                string `json:"token,omitempty" bson:"token,omitempty"`
-}
-
-func errorParamIsRequired(name string) error {
-	return fmt.Errorf("%s é obrigatório", name)
-}
-
-func errorParamMinimunValue(name string, length int8) error {
-	return fmt.Errorf("%s deve conter no minimo %d caracteres", name, length)
-}
-
-func errorParamMaximunValue(name string, length int8) error {
-	return fmt.Errorf("%s deve conter no máximo %d caracteres", name, length)
-}
-
-func validateEmail(email string) bool {
-	var regexEmail = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
-
-	return regexEmail.MatchString(email)
+	ID                    string `json:"id,omitempty" bson:"_id,omitempty"`
+	Username              string `json:"username,omitempty" bson:"username"`
+	FirstName             string `json:"firstName,omitempty" bson:"firstName"`
+	LastName              string `json:"lastName,omitempty" bson:"lastName"`
+	Email                 string `json:"email,omitempty" bson:"email"`
+	Status                string `json:"status,omitempty" bson:"status"`
+	Description           string `json:"description,omitempty" bson:"description"`
+	CreatedAtMilliseconds int64  `json:"createdAtMili,omitempty" bson:"createdAt,omitempty"`
+	CreatedAt             string `json:"createdAt,omitempty" bson:"omitempty"`
+	Password              string `json:"password,omitempty" bson:"password,omitempty"`
+	HashPassword          string `json:"hashPassword,omitempty" bson:"hashPassword,omitempty"`
+	Token                 string `json:"token,omitempty" bson:"token,omitempty"`
 }
 
 func (user *User) ValidateCreateUser() error {

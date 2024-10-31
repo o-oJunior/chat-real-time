@@ -39,7 +39,7 @@ const Authentication = ({ children }: { children: React.ReactNode }) => {
       {user.username !== "" ? (
         <div className="flex row w-full">
           <div className="mr-4">{router.pathname !== "/404" && <Sidebar />}</div>
-          <div className="py-5">{children}</div>
+          <div className="py-5 w-full pr-5">{children}</div>
         </div>
       ) : (
         <div>{children}</div>

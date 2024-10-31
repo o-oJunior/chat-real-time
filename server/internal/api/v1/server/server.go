@@ -26,7 +26,7 @@ func InitApiV1() {
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		AllowCredentials: true,
-		MaxAge: 0,
+		MaxAge:           0,
 	}))
 
 	userHandler := dependency.InitializeUser(database)

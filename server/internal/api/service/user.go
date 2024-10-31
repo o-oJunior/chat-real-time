@@ -4,14 +4,18 @@ import (
 	"fmt"
 	"server/internal/api/entity"
 	"server/internal/api/repository"
+	"server/internal/api/v1/middleware"
 	"server/internal/config"
 	"strings"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type UserService interface {
-	CreateUser(user *entity.User) error
-	Authentication(user *entity.User) (*entity.User, error)
+	GetUsersExceptID(string, string, int, int) (*[]entity.User, int64, error)
+	CreateUser(*entity.User) error
+	Authentication(*entity.User) (*entity.User, error)
 }
 
 type userService struct {
@@ -23,6 +27,27 @@ func NewUserService(user repository.UserRepository) UserService {
 }
 
 var logger *config.Logger = config.NewLogger("service")
+
+func (service *userService) GetUsersExceptID(username string, cookieToken string, limit int, offset int) (*[]entity.User, int64, error) {
+	middlewareToken := middleware.NewMiddlewareToken()
+	data, err := middlewareToken.DecodeToken(cookieToken)
+	if err != nil {
+		logger.Error("Erro ao decodificar o token: %v", err)
+		return nil, 0, fmt.Errorf("access unauthorized")
+	}
+	idString := data["id"].(string)
+	id, err := primitive.ObjectIDFromHex(idString)
+	if err != nil {
+		logger.Error("Erro ao converter o ID string para ObjectID: %v", err)
+		return nil, 0, err
+	}
+	users, totalUsers, err := service.userRepository.GetUsersAndTotalExceptID(id, username, limit, offset)
+	if err != nil {
+		logger.Error("Erro ao buscar os usuários: %v", err)
+		return nil, 0, err
+	}
+	return users, totalUsers, nil
+}
 
 func (userService *userService) CreateUser(user *entity.User) error {
 	logger.Info("Validando usuário...")
@@ -61,6 +86,6 @@ func (userService *userService) Authentication(user *entity.User) (*entity.User,
 	}
 	logger.Info("Credenciais válidas")
 	data.HashPassword = ""
-	data.CreateAt = time.UnixMilli(data.CreateAtMilliseconds).UTC().Format(time.RFC3339)
+	data.CreatedAt = time.UnixMilli(data.CreatedAtMilliseconds).UTC().Format(time.RFC3339)
 	return data, nil
 }

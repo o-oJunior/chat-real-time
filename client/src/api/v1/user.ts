@@ -60,4 +60,16 @@ export default class API_V1_USER {
     })
     return result.json()
   }
+
+  async getUsers(page: number = 1, limit: number = 10, username: string = ""){
+      const result = await fetch(`${this.BASE_URL_API_V1}/user/search?page=${page}&limit=${limit}&username=${username}`, 
+        {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      })
+      return result.json()
+  }
 }

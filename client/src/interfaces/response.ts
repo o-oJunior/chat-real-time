@@ -1,7 +1,7 @@
 import { IUser } from "@/redux/user/slice"
 
 export interface IResponse {
-  data: IUser
+  data: any
   message: string
   statusCode: number
 }
