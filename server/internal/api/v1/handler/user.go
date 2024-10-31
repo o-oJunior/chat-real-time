@@ -55,7 +55,7 @@ func (handler *userHandler) GetUsers(ctx *gin.Context) {
 	}
 	logger.Info("Consultando página %d com limite %d de usuários", page, limit)
 	users, totalUsers, err := handler.userService.GetUsersExceptID(username, cookieToken, limit, offset)
-	if err != nil || len(*users) == 0 {
+	if err != nil {
 		if err.Error() == "access unauthorized" {
 			response.SendError(ctx, http.StatusUnauthorized, err.Error())
 		} else {
@@ -64,6 +64,13 @@ func (handler *userHandler) GetUsers(ctx *gin.Context) {
 		return
 	}
 	totalPages := math.Ceil(float64(totalUsers) / float64(limit))
+	if len(*users) == 0 {
+		result := bson.M{
+			"users": []entity.User{},
+		}
+		response.SendSuccess(ctx, http.StatusOK, "", result)
+		return
+	}
 	result := bson.M{
 		"page":       page,
 		"totalPages": totalPages,
