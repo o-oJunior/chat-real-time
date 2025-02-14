@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"server/internal/api/dependency"
 	"server/internal/api/v1/router"
 	"server/internal/config"
 	"server/internal/config/mongodb"
@@ -29,9 +28,8 @@ func InitApiV1() {
 		MaxAge:           0,
 	}))
 
-	userHandler := dependency.InitializeUser(database)
 	v1 := rt.Group("/api/v1")
-	userGroup := v1.Group("/user")
-	router.UserRouters(userGroup, userHandler)
+	router.UserRouters(v1, database)
+	router.InviteRouters(v1, database)
 	rt.Run(port)
 }

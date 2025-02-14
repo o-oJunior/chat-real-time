@@ -7,7 +7,6 @@ import (
 	"server/internal/api/service"
 	"server/internal/api/v1/middleware"
 	"server/internal/api/v1/response"
-	"server/internal/config"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -26,11 +25,9 @@ type userHandler struct {
 	userService service.UserService
 }
 
-func NewUserHandler(user service.UserService) UserHandler {
-	return &userHandler{user}
+func NewUserHandler(service service.UserService) UserHandler {
+	return &userHandler{service}
 }
-
-var logger *config.Logger = config.NewLogger("handler")
 
 func (handler *userHandler) converterJSON(ctx *gin.Context, message string) *entity.User {
 	method := ctx.Request.Method
