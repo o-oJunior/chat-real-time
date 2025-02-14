@@ -8,6 +8,18 @@ interface AlertModalProps {
   onClose: () => void
 }
 
+export type AlertProps = {
+  type: "success" | "error" | "warning"
+  message: string
+  modalOpen: boolean
+}
+
+export const initialValueAlert: AlertProps = {
+  type: "error",
+  message: "",
+  modalOpen: false,
+}
+
 const icons = {
   error: (
     <svg
