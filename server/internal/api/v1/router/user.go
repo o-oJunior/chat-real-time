@@ -1,17 +1,20 @@
 package router
 
 import (
-	"server/internal/api/v1/handler"
+	"server/internal/api/dependency"
 	"server/internal/api/v1/middleware"
 
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func UserRouters(v1 *gin.RouterGroup, handler handler.UserHandler) {
-	newMiddlewareToken := middleware.NewMiddlewareToken()
-	v1.GET("/search", handler.GetUsers)
-	v1.POST("/create", handler.CreateUser)
-	v1.POST("/authentication", handler.Authentication)
-	v1.GET("/validate/authentication", newMiddlewareToken.ValidateCookie, handler.GetUserToken)
-	v1.GET("/logout", handler.Logout)
+func UserRouters(router *gin.RouterGroup, database *mongo.Database) {
+	rt := router.Group("/user")
+	handler := dependency.InitializeUser(database)
+	middleware := middleware.NewMiddlewareToken()
+	rt.GET("/search", handler.GetUsers)
+	rt.POST("/create", handler.CreateUser)
+	rt.POST("/authentication", handler.Authentication)
+	rt.GET("/validate/authentication", middleware.ValidateCookie, handler.GetUserToken)
+	rt.GET("/logout", handler.Logout)
 }

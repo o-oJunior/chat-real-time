@@ -12,6 +12,8 @@ type CreateUser = {
   confirmPassword: string
 }
 
+const MESSAGE_ERROR = {statusCode: 500, error: "Erro na conexão com o servidor, tente novamente mais tarde!"}
+
 export default class API_V1_USER {
   private BASE_URL_API_V1: string
 
@@ -20,56 +22,77 @@ export default class API_V1_USER {
   }
 
   async validateAuthentication() {
-    const result = await fetch(`${this.BASE_URL_API_V1}/user/validate/authentication`, {
-      credentials: "include",
-    })
-    return result.json()
+    try {
+      const result = await fetch(`${this.BASE_URL_API_V1}/user/validate/authentication`, {
+        credentials: "include",
+      })
+      return result.json()
+    } catch (error) {
+      return MESSAGE_ERROR
+    }
   }
 
   async userAuthentication(user: UserAuth) {
-    const result = await fetch(`${this.BASE_URL_API_V1}/user/authentication`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
-      body: JSON.stringify(user),
-    })
-    return result.json()
-  }
-
-  async createUser(user: CreateUser) {
-    const result = await fetch(`${this.BASE_URL_API_V1}/user/create`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
-      body: JSON.stringify(user),
-    })
-    return result.json()
-  }
-
-  async logout(){
-    const result = await fetch(`${this.BASE_URL_API_V1}/user/logout`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include"
-    })
-    return result.json()
-  }
-
-  async getUsers(page: number = 1, limit: number = 10, username: string = ""){
-      const result = await fetch(`${this.BASE_URL_API_V1}/user/search?page=${page}&limit=${limit}&username=${username}`, 
-        {
-        method: "GET",
+    try {
+      const result = await fetch(`${this.BASE_URL_API_V1}/user/authentication`, {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         credentials: "include",
+        body: JSON.stringify(user),
       })
       return result.json()
+    } catch (error) {
+      return MESSAGE_ERROR
+    }
+  }
+
+  async createUser(user: CreateUser) {
+    try {
+      const result = await fetch(`${this.BASE_URL_API_V1}/user/create`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(user),
+      })
+      return result.json()
+    } catch (error) {
+      return MESSAGE_ERROR
+    }
+  }
+
+  async logout(){
+    try {
+      const result = await fetch(`${this.BASE_URL_API_V1}/user/logout`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include"
+      })
+      return result.json()
+    } catch (error) {
+      return MESSAGE_ERROR
+    }
+  }
+
+  async getUsers(page: number = 1, limit: number = 10, username: string = ""){
+      try {
+        const includeUsername = username !== "" ? `&username=${username}` : ""
+        const result = await fetch(`${this.BASE_URL_API_V1}/user/search?page=${page}&limit=${limit}${includeUsername}`, 
+          {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+        })
+        return result.json()
+      } catch (error) {
+        return MESSAGE_ERROR
+      }
   }
 }

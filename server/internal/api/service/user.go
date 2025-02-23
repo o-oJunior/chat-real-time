@@ -5,7 +5,6 @@ import (
 	"server/internal/api/entity"
 	"server/internal/api/repository"
 	"server/internal/api/v1/middleware"
-	"server/internal/config"
 	"strings"
 	"time"
 
@@ -19,14 +18,13 @@ type UserService interface {
 }
 
 type userService struct {
-	userRepository repository.UserRepository
+	userRepository   repository.UserRepository
+	inviteRepository repository.InviteRepository
 }
 
-func NewUserService(user repository.UserRepository) UserService {
-	return &userService{user}
+func NewUserService(user repository.UserRepository, invite repository.InviteRepository) UserService {
+	return &userService{userRepository: user, inviteRepository: invite}
 }
-
-var logger *config.Logger = config.NewLogger("service")
 
 func (service *userService) GetUsersExceptID(username string, cookieToken string, limit int, offset int) (*[]entity.User, int64, error) {
 	middlewareToken := middleware.NewMiddlewareToken()
@@ -46,6 +44,43 @@ func (service *userService) GetUsersExceptID(username string, cookieToken string
 		logger.Error("Erro ao buscar os usuários: %v", err)
 		return nil, 0, err
 	}
+	logger.Info("Verificando se existe convites entre os usuários")
+	userIDs := make([]string, len(*users))
+	for i, user := range *users {
+		userIDs[i] = user.ID
+	}
+
+	invites, err := service.inviteRepository.FindInvitesByUsers(idString, userIDs)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	inviteMap := make(map[string]entity.Invite)
+	for _, invite := range invites {
+		var userID string
+		if invite.UserIdInviter != idString {
+			userID = invite.UserIdInviter
+		} else {
+			userID = invite.UserIdInvited
+		}
+		inviteMap[userID] = entity.Invite{
+			InviteStatus:  invite.InviteStatus,
+			UserIdInvited: invite.UserIdInvited,
+			UserIdInviter: invite.UserIdInviter,
+		}
+	}
+
+	for i := range *users {
+		user := &(*users)[i]
+		if value, exists := inviteMap[user.ID]; exists {
+			user.InviteStatus = value.InviteStatus
+			user.UserIdInvited = value.UserIdInvited
+			user.UserIdInviter = value.UserIdInviter
+		} else {
+			user.InviteStatus = ""
+		}
+	}
+
 	return users, totalUsers, nil
 }
 
@@ -55,7 +90,7 @@ func (userService *userService) CreateUser(user *entity.User) error {
 		logger.Error("Erro ao validar o usuário: %v", err)
 		return err
 	}
-	data, _ := userService.userRepository.FindUsername(user)
+	data, _ := userService.userRepository.FindUsername(user.Username)
 	dataUserNameLower := strings.ToLower(data.Username)
 	userNameLower := strings.ToLower(user.Username)
 	if dataUserNameLower == userNameLower {
@@ -74,7 +109,7 @@ func (userService *userService) CreateUser(user *entity.User) error {
 
 func (userService *userService) Authentication(user *entity.User) (*entity.User, error) {
 	logger.Info("Buscando o usuário...")
-	data, err := userService.userRepository.FindUsername(user)
+	data, err := userService.userRepository.FindUsername(user.Username)
 	logger.Info("Validando a credenciais...")
 	if err != nil {
 		logger.Error("Erro ao autenticar o usuário: %v", err)

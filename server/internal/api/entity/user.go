@@ -20,6 +20,9 @@ type User struct {
 	Password              string `json:"password,omitempty" bson:"password,omitempty"`
 	HashPassword          string `json:"hashPassword,omitempty" bson:"hashPassword,omitempty"`
 	Token                 string `json:"token,omitempty" bson:"token,omitempty"`
+	UserIdInvited         string `json:"userIdInvited,omitempty" bson:"userIdInvited,omitempty"`
+	UserIdInviter         string `json:"userIdInviter,omitempty" bson:"userIdInviter,omitempty"`
+	InviteStatus          string `json:"inviteStatus,omitempty" bson:"inviteStatus,omitempty"`
 }
 
 func (user *User) ValidateCreateUser() error {

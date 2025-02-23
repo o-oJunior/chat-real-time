@@ -3,7 +3,7 @@ import React from "react"
 type Props = {
   text: string
   list: any[]
-  renderItem: (item: any) => React.ReactNode
+  renderItem: (item: any, index: number) => React.ReactNode
 }
 
 const ListItem = ({ text, list, renderItem }: Props) => {
@@ -13,7 +13,7 @@ const ListItem = ({ text, list, renderItem }: Props) => {
         <ul className="flex flex-col w-full gap-2">
           {list.map((item, index) => (
             <li className="flex-1 w-full justify-center" key={index}>
-              {renderItem(item)}
+              {renderItem(item, index)}
             </li>
           ))}
         </ul>

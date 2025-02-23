@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit"
 
 export interface IUser {
-  id: number
+  id: string
   username: string
   firstName: string
   lastName: string
@@ -17,7 +17,7 @@ export interface IUserData {
 }
 
 export const initialValueUser: IUser = {
-  id: 0,
+  id: "",
   username: "",
   firstName: "",
   lastName: "",

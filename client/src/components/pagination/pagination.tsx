@@ -6,6 +6,16 @@ type Props = {
   handlePageChange: (currentPage: number) => void
 }
 
+export type TApiPagination = {
+  currentPage: number
+  totalPages: number
+}
+
+export const initialValuePagination: TApiPagination = {
+  currentPage: 0,
+  totalPages: 0,
+}
+
 const Pagination = ({ currentPage, totalPages, handlePageChange }: Props) => {
   let visiblePages = []
 

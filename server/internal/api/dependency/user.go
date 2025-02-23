@@ -10,7 +10,8 @@ import (
 
 func InitializeUser(database *mongo.Database) handler.UserHandler {
 	userRepository := repository.NewUserRepository(database)
-	userService := service.NewUserService(userRepository)
+	inviteRepository := repository.NewInviteRepository(database)
+	userService := service.NewUserService(userRepository, inviteRepository)
 	userHandler := handler.NewUserHandler(userService)
 	return userHandler
 }
