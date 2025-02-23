@@ -35,19 +35,6 @@ func (handler *inviteHandler) converterJsonInvite(ctx *gin.Context, message stri
 	return invite
 }
 
-func (handler *inviteHandler) converterJsonUser(ctx *gin.Context, message string) *entity.User {
-	method := ctx.Request.Method
-	url := ctx.Request.URL
-	remoteAddr := ctx.Request.RemoteAddr
-	logger.Info("(%s - %s) %s %s", method, url, remoteAddr, message)
-	var user *entity.User
-	if err := ctx.ShouldBindJSON(&user); err != nil {
-		logger.Error("Erro ao converter o JSON: %v", err)
-		panic(err)
-	}
-	return user
-}
-
 func (handler *inviteHandler) InsertInvite(ctx *gin.Context) {
 	cookieToken, err := ctx.Cookie("token")
 	if err != nil {
