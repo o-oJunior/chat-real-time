@@ -17,4 +17,5 @@ func UserRouters(router *gin.RouterGroup, database *mongo.Database) {
 	rt.POST("/authentication", handler.Authentication)
 	rt.GET("/validate/authentication", middleware.ValidateCookie, handler.GetUserToken)
 	rt.GET("/logout", handler.Logout)
+	rt.GET("/contacts", middleware.ValidateCookie, handler.GetContacts)
 }

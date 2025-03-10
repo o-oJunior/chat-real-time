@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"server/internal/api/entity"
+	"server/internal/api/v1/middleware"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -14,8 +15,9 @@ import (
 
 type UserRepository interface {
 	InsertUser(*entity.User) error
+	GetUserByID(primitive.ObjectID) (*entity.User, error)
+	GetUsersWithFilter(bson.M, *middleware.Pagination) (*[]entity.User, int, error)
 	FindUsername(string) (*entity.User, error)
-	GetUsersAndTotalExceptID(primitive.ObjectID, string, int, int) (*[]entity.User, int64, error)
 }
 
 type userRepository struct {
@@ -27,20 +29,27 @@ func NewUserRepository(database *mongo.Database) UserRepository {
 }
 
 func (repository *userRepository) InsertUser(user *entity.User) error {
-	logger.Info("Inserindo o usuário no banco de dados...")
 	collection := repository.database.Collection("users")
 	user.CreatedAtMilliseconds = time.Now().UnixMilli()
 	_, err := collection.InsertOne(context.Background(), user)
 	if err != nil {
-		logger.Error("Erro ao inserir o usuário: %v", err)
 		return err
 	}
-	logger.Info("Usuário inserido com sucesso!")
 	return nil
 }
 
+func (repository *userRepository) GetUserByID(id primitive.ObjectID) (*entity.User, error) {
+	collection := repository.database.Collection("users")
+	filter := bson.M{"_id": id}
+	var user *entity.User
+	err := collection.FindOne(context.Background(), filter).Decode(&user)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
 func (repository *userRepository) FindUsername(username string) (*entity.User, error) {
-	logger.Info("Buscando o usuário pelo username...")
 	collection := repository.database.Collection("users")
 	filterUserRegex := bson.M{"$regex": fmt.Sprintf("^%s$", username), "$options": "i"}
 	filter := bson.D{{Key: "username", Value: filterUserRegex}}
@@ -48,40 +57,49 @@ func (repository *userRepository) FindUsername(username string) (*entity.User, e
 	if err := collection.FindOne(context.Background(), filter).Decode(&result); err != nil {
 		return &result, fmt.Errorf("usuário não foi encontrado")
 	}
-	logger.Info("Usuário foi encontrado, retornando...")
 	return &result, nil
 }
 
-func (repository *userRepository) GetUsersAndTotalExceptID(id primitive.ObjectID, username string, limit int, offset int) (*[]entity.User, int64, error) {
-	logger.Info("Buscando usuários...")
+func (repository *userRepository) GetUsersWithFilter(filter bson.M, pagination *middleware.Pagination) (*[]entity.User, int, error) {
 	collection := repository.database.Collection("users")
-	filter := bson.M{
-		"_id": bson.M{"$ne": id},
-		"username": bson.M{
-			"$regex": primitive.Regex{Pattern: "^" + username, Options: "i"},
-		},
+	options := repository.buildPaginationOptions(pagination)
+	users, err := repository.findUsers(collection, filter, options)
+	if err != nil {
+		return nil, 0, err
 	}
+	totalItems, err := repository.countItemsDocuments(collection, filter)
+	if err != nil {
+		return nil, 0, err
+	}
+	return &users, totalItems, nil
+}
 
-	options := options.
-		Find().
-		SetLimit(int64(limit)).
-		SetSkip(int64(offset)).
+func (repository *userRepository) buildPaginationOptions(pagination *middleware.Pagination) *options.FindOptions {
+	return options.Find().
+		SetLimit(int64(pagination.Limit)).
+		SetSkip(int64(pagination.Offset)).
 		SetSort(bson.D{{Key: "username", Value: 1}}).
 		SetCollation(&options.Collation{
 			Locale:   "en",
 			Strength: 1,
 		})
+}
+
+func (repository *userRepository) findUsers(collection *mongo.Collection, filter bson.M, options *options.FindOptions) ([]entity.User, error) {
 	cursor, err := collection.Find(context.Background(), filter, options)
 	if err != nil {
-		logger.Error("Erro ao buscar os usuários: %v", err)
-		return nil, 0, err
+		return nil, err
 	}
 	defer cursor.Close(context.Background())
+
+	return repository.decodeUsers(cursor)
+}
+
+func (repository *userRepository) decodeUsers(cursor *mongo.Cursor) ([]entity.User, error) {
 	var users []entity.User
 	for cursor.Next(context.Background()) {
 		var data entity.User
 		if err := cursor.Decode(&data); err != nil {
-			logger.Error("Erro ao decodificar usuário: %v", err)
 			continue
 		}
 		user := entity.User{
@@ -93,14 +111,15 @@ func (repository *userRepository) GetUsersAndTotalExceptID(id primitive.ObjectID
 		users = append(users, user)
 	}
 	if err := cursor.Err(); err != nil {
-		logger.Error("Erro ao iterar sobre o cursor: %v", err)
-		return nil, 0, err
+		return nil, err
 	}
+	return users, nil
+}
+
+func (repository *userRepository) countItemsDocuments(collection *mongo.Collection, filter bson.M) (int, error) {
 	totalItems, err := collection.CountDocuments(context.Background(), filter)
 	if err != nil {
-		logger.Error("Erro ao buscar quantidade total de usuários: %v", err)
-		return nil, 0, err
+		return 0, err
 	}
-	logger.Info("Retornando %d usuários...", len(users))
-	return &users, totalItems, nil
+	return int(totalItems), nil
 }

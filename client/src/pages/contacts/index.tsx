@@ -10,7 +10,7 @@ import { IResponse } from "@/interfaces/response"
 import { useAppSelector } from "@/redux/hook"
 import { useUser } from "@/redux/user/slice"
 import Head from "next/head"
-import React, { ChangeEvent, FormEvent, useState } from "react"
+import React, { ChangeEvent, FormEvent, use, useEffect, useRef, useState } from "react"
 
 type TSearch = {
   contacts: string
@@ -61,8 +61,8 @@ const initialValueDropdown = {
 
 const Contacts = () => {
   const [contacts, setContacts] = useState<any[]>([
-    { name: "Olinda", description: "Disponível" },
-    { name: "Cloroquina", description: "Disponível" },
+    { username: "Olinda", description: "Disponível" },
+    { username: "Cloroquina", description: "Disponível" },
   ])
   const { user } = useAppSelector(useUser)
   const [users, setUsers] = useState<IUsers[]>([])
@@ -71,6 +71,33 @@ const Contacts = () => {
   const [isOpen, setIsOpen] = useState<boolean>(false)
   const [search, setSearch] = useState<TSearch>(initialValueSearch)
   const [dropdown, setDropdown] = useState<Dropdown>(initialValueDropdown)
+  const [active, setActive] = useState<string>("Adicionados")
+  const optionsMenu = ["Adicionados", "Recebidos", "Enviados"]
+  const groupContacts = useRef<string>("added")
+
+  useEffect(() => {
+    handleContacts(groupContacts.current, "")
+  }, [])
+
+  const handleContacts = async (group: string, username: string) => {
+    const contacts = await getContacts(1, 20, group, username)
+    setContacts(contacts.users)
+  }
+
+  const getContacts = async (page: number, limit: number, group: string, username: string) => {
+    const v1 = new API_V1_USER()
+    const response: IResponse = await v1.getContacts(page, limit, group, username)
+    if (response.statusCode !== 200) {
+      setAlert({
+        message: "Ocorreu um erro inesperado ao obter os usuários, tente novamente mais tarde!",
+        type: "error",
+        modalOpen: true,
+      })
+      return
+    }
+    return response.data
+  }
+
   const handleModal = async () => {
     if (!isOpen) {
       const params = { page: 1, limit: 10 }
@@ -88,7 +115,11 @@ const Contacts = () => {
   const handleChangeInput = async (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setSearch({ ...search, [name]: value })
-    await getUsers(1, 10, value)
+    if (name === "users") {
+      await getUsers(1, 10, value)
+    } else if (name === "contacts") {
+      await handleContacts(groupContacts.current, value)
+    }
   }
 
   const getUsers = async (page?: number, limit?: number, username?: string) => {
@@ -176,6 +207,17 @@ const Contacts = () => {
     setDropdown(initialValueDropdown)
   }
 
+  const handleOptionMenu = (item: "Adicionados" | "Recebidos" | "Enviados") => {
+    const groups = {
+      Adicionados: "added",
+      Recebidos: "received",
+      Enviados: "sent",
+    }
+    setActive(item)
+    groupContacts.current = groups[item]
+    handleContacts(groupContacts.current, "")
+  }
+
   return (
     <>
       <Head>
@@ -197,78 +239,91 @@ const Contacts = () => {
           >
             Adicionar contato
           </button>
-          <Modal isOpen={isOpen} onClose={handleModal}>
-            <div className="flex flex-col gap-5 h-full">
-              <Search
-                handleSearch={handleSearch}
-                handleChangeInput={handleChangeInput}
-                textPlaceholder="nome de usuário"
-                nameInput="users"
-                query={search.users}
-              />
-              <div className="flex-1 overflow-auto gap-5">
-                <ListItem
-                  list={users}
-                  text="usuário"
-                  renderItem={(item: Item, index: number) => {
-                    const statusKey = item.inviteStatus ? item.inviteStatus : "none"
-                    return (
-                      <Card>
-                        <div className="flex flex-row justify-between w-full">
-                          <div className="flex flex-col gap-1">
-                            <span>{item.username}</span>
-                            <span className="text-sm text-gray-400">{item.description}</span>
-                          </div>
-                          <div className="flex cursor-pointer" onClick={() => handleInvite(item, index)}>
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="w-8 h-8"
-                              stroke="currentColor"
-                              viewBox="0 0 640 512"
-                            >
-                              <path
-                                fill="#787878"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d={invite[statusKey]}
-                              />
-                            </svg>
-                          </div>
+        </div>
+        <div className="flex justify-center space-x-4 p-4 rounded-lg">
+          {optionsMenu.map((item) => (
+            <button
+              key={item}
+              className={`px-6 py-2 rounded-md transition-colors duration-300 ${
+                active === item ? "bg-blue-500 text-white" : "bg-gray-200 hover:bg-gray-300"
+              }`}
+              onClick={() => handleOptionMenu(item as "Adicionados" | "Recebidos" | "Enviados")}
+            >
+              {item}
+            </button>
+          ))}
+        </div>
+        <Modal isOpen={isOpen} onClose={handleModal}>
+          <div className="flex flex-col gap-5 h-full">
+            <Search
+              handleSearch={handleSearch}
+              handleChangeInput={handleChangeInput}
+              textPlaceholder="nome de usuário"
+              nameInput="users"
+              query={search.users}
+            />
+            <div className="flex-1 overflow-auto gap-5">
+              <ListItem
+                list={users}
+                text="usuário"
+                renderItem={(item: Item, index: number) => {
+                  const statusKey = item.inviteStatus ? item.inviteStatus : "none"
+                  return (
+                    <Card>
+                      <div className="flex flex-row justify-between w-full">
+                        <div className="flex flex-col gap-1">
+                          <span>{item.username}</span>
+                          <span className="text-sm text-gray-400">{item.description}</span>
                         </div>
-                        {dropdown.isVisible && dropdown.indexVisible === index && (
-                          <div className="absolute bg-white shadow-md rounded mt-2 p-2">
-                            <ul>
-                              {dropdown.options.map((value, i) => (
-                                <li
-                                  onClick={() => value.function(item, index)}
-                                  key={i}
-                                  className="p-2 hover:bg-gray-200 cursor-pointer"
-                                >
-                                  {value.text}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </Card>
-                    )
-                  }}
-                />
-              </div>
-              <Pagination
-                currentPage={apiPagination!.currentPage}
-                totalPages={apiPagination!.totalPages}
-                handlePageChange={handlePageChange}
+                        <div className="flex cursor-pointer" onClick={() => handleInvite(item, index)}>
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="w-8 h-8"
+                            stroke="currentColor"
+                            viewBox="0 0 640 512"
+                          >
+                            <path
+                              fill="#787878"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d={invite[statusKey]}
+                            />
+                          </svg>
+                        </div>
+                      </div>
+                      {dropdown.isVisible && dropdown.indexVisible === index && (
+                        <div className="absolute bg-white shadow-md rounded mt-2 p-2">
+                          <ul>
+                            {dropdown.options.map((value, i) => (
+                              <li
+                                onClick={() => value.function(item, index)}
+                                key={i}
+                                className="p-2 hover:bg-gray-200 cursor-pointer"
+                              >
+                                {value.text}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </Card>
+                  )
+                }}
               />
             </div>
-          </Modal>
-          {alert!.modalOpen && (
-            <Alert type={alert!.type} message={alert!.message} onClose={() => setAlert(initialValueAlert)} />
-          )}
-        </div>
+            <Pagination
+              currentPage={apiPagination!.currentPage}
+              totalPages={apiPagination!.totalPages}
+              handlePageChange={handlePageChange}
+            />
+          </div>
+        </Modal>
+        {alert!.modalOpen && (
+          <Alert type={alert!.type} message={alert!.message} onClose={() => setAlert(initialValueAlert)} />
+        )}
         <div className="flex flex-row justify-between w-full px-20">
           <div className="flex-1 border border-gray-300 rounded-lg p-10">
-            <ListItem list={contacts} text="contato" renderItem={(item) => <div>{item.name}</div>} />
+            <ListItem list={contacts} text="contato" renderItem={(item) => <div>{item.username}</div>} />
           </div>
         </div>
       </div>
