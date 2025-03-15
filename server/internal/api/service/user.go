@@ -177,7 +177,13 @@ func (service *userService) GetContacts(cookieToken string, pagination *middlewa
 		return nil, 0, nil
 	}
 	filter := service.mountFilterByUserIDs(userIDs, username)
-	return service.userRepository.GetUsersWithFilter(filter, pagination)
+	users, totalUsers, err := service.userRepository.GetUsersWithFilter(filter, pagination)
+	if err != nil {
+		logger.Error("Erro ao buscar os usuários: %v", err)
+		return nil, 0, err
+	}
+	return service.mapInvitesToUsers(userIdLogged, users, totalUsers)
+	// return service.userRepository.GetUsersWithFilter(filter, pagination)
 }
 func (service *userService) getAddedContacts(userIdLogged, username string, pagination *middleware.Pagination) (*[]entity.User, int, error) {
 	logger.Info("Buscando os contatos do usuário logado")
