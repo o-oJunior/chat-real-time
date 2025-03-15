@@ -47,14 +47,11 @@ const Contacts = () => {
   const groupContacts = useRef<Group>("added")
 
   useEffect(() => {
-    handleContacts(groupContacts.current, "")
+    getContactsByUseEffect(groupContacts.current, "")
   }, [])
 
-  const handleContacts = async (group: string, username: string) => {
-    const contacts = await getContacts(1, 20, group, username)
-    if (contacts && contacts.users) {
-      setContacts(contacts.users)
-    }
+  const getContactsByUseEffect = async (group: string, username: string) => {
+    await getContacts(1, 20, group, username)
   }
 
   const getContacts = async (page: number, limit: number, group: string, username: string) => {
@@ -68,6 +65,7 @@ const Contacts = () => {
       })
       return
     }
+    setContacts(response.data.users)
     setContactPagination({
       currentPage: Number(response.data.page),
       totalPages: Number(response.data.totalPages),
@@ -96,7 +94,7 @@ const Contacts = () => {
     if (name === "users") {
       await getUsers(1, 10, value)
     } else if (name === "contacts") {
-      await handleContacts(groupContacts.current, value)
+      await getContacts(1, 20, groupContacts.current, value)
     }
   }
 
@@ -124,8 +122,14 @@ const Contacts = () => {
     })
   }
 
-  const handlePageChange = async (page: number) => {
-    await getUsers(page, 10, search.users)
+  const handlePageChange = async (page: number, list: "users" | "contacts") => {
+    const update = {
+      contacts: async () => await getContacts(page, 20, groupContacts.current, search.contacts),
+      users: async () => await getUsers(page, 10, search.users),
+    }
+    if (update[list]) {
+      await update[list]()
+    }
   }
 
   const sendInvite = async (idInvited: string) => {
@@ -189,7 +193,7 @@ const Contacts = () => {
     setDropdown(initialValueDropdown)
   }
 
-  const handleOptionMenu = (item: "Adicionados" | "Recebidos" | "Enviados") => {
+  const handleOptionMenu = async (item: "Adicionados" | "Recebidos" | "Enviados") => {
     const groups = {
       Adicionados: "added",
       Recebidos: "received",
@@ -197,7 +201,7 @@ const Contacts = () => {
     }
     setActive(item)
     groupContacts.current = groups[item] as Group
-    handleContacts(groupContacts.current, "")
+    await getContacts(1, 20, groupContacts.current, "")
   }
 
   return (
@@ -256,7 +260,7 @@ const Contacts = () => {
             <Pagination
               currentPage={invitePagination!.currentPage}
               totalPages={invitePagination!.totalPages}
-              handlePageChange={handlePageChange}
+              handlePageChange={(currentPage) => handlePageChange(currentPage, "users")}
             />
           </div>
         </Modal>
@@ -278,7 +282,7 @@ const Contacts = () => {
               <Pagination
                 currentPage={contactPagination!.currentPage}
                 totalPages={contactPagination!.totalPages}
-                handlePageChange={handlePageChange}
+                handlePageChange={(currentPage) => handlePageChange(currentPage, "contacts")}
               />
             </div>
           )}
