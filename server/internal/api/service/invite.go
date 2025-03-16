@@ -6,6 +6,8 @@ import (
 	"server/internal/api/repository"
 	"server/internal/api/v1/middleware"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type InviteService interface {
@@ -14,11 +16,12 @@ type InviteService interface {
 }
 
 type inviteService struct {
-	inviteRepository repository.InviteRepository
+	inviteRepository  repository.InviteRepository
+	contactRepository repository.ContactRepository
 }
 
-func NewInviteService(inviteRepository repository.InviteRepository) InviteService {
-	return &inviteService{inviteRepository}
+func NewInviteService(inviteRepository repository.InviteRepository, contactRepository repository.ContactRepository) InviteService {
+	return &inviteService{inviteRepository, contactRepository}
 }
 
 func (service *inviteService) InsertInvite(invite *entity.Invite, cookieToken string) error {
@@ -76,6 +79,13 @@ func (service *inviteService) UpdateStatusInvite(invite *entity.Invite, statusIn
 	if statusInvite == "none" {
 		logger.Info("Deletando o convite...")
 		err = service.inviteRepository.DeleteInviteById(inviteData.ID)
+	} else if statusInvite == "added" {
+		logger.Info("Adicionando contato e deletando o convite...")
+		err = service.insertContact(invite)
+		if err != nil {
+			return fmt.Errorf("error internal server")
+		}
+		err = service.inviteRepository.DeleteInviteById(inviteData.ID)
 	} else {
 		logger.Info("Atualizando o status do convite...")
 		err = service.inviteRepository.UpdateStatusInvite(inviteData.ID, statusInvite)
@@ -84,5 +94,32 @@ func (service *inviteService) UpdateStatusInvite(invite *entity.Invite, statusIn
 		return fmt.Errorf("error internal server")
 	}
 	logger.Info("Sucesso ao atualizar o convite!")
+	return nil
+}
+
+func (service *inviteService) insertContact(invite *entity.Invite) error {
+	inviteAt := time.Now().UnixMilli()
+	userIdInviter, err := primitive.ObjectIDFromHex(invite.UserIdInviter)
+	if err != nil {
+		logger.Error("Erro ao converter ID do usuário que enviou o convite: %v", err)
+		return err
+	}
+	userIdInvited, err := primitive.ObjectIDFromHex(invite.UserIdInvited)
+	if err != nil {
+		logger.Error("Erro ao converter ID do usuário convidado: %v", err)
+		return err
+	}
+	contact := &entity.Contact{
+		InviteStatus:          invite.InviteStatus,
+		UserIdInvited:         userIdInvited,
+		UserIdInviter:         userIdInviter,
+		InvitedAtMilliseconds: inviteAt,
+	}
+	err = service.contactRepository.InsertContact(contact)
+	if err != nil {
+		logger.Error("Erro ao adicionar o contato: %v", err)
+		return err
+	}
+	logger.Info("Contato adicionado com sucesso!")
 	return nil
 }

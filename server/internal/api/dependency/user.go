@@ -11,7 +11,8 @@ import (
 func InitializeUser(database *mongo.Database) handler.UserHandler {
 	userRepository := repository.NewUserRepository(database)
 	inviteRepository := repository.NewInviteRepository(database)
-	userService := service.NewUserService(userRepository, inviteRepository)
+	contactRepository := repository.NewContactRepository(database)
+	userService := service.NewUserService(userRepository, inviteRepository, contactRepository)
 	userHandler := handler.NewUserHandler(userService)
 	return userHandler
 }

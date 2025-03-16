@@ -20,12 +20,13 @@ type UserService interface {
 }
 
 type userService struct {
-	userRepository   repository.UserRepository
-	inviteRepository repository.InviteRepository
+	userRepository    repository.UserRepository
+	inviteRepository  repository.InviteRepository
+	contactRepository repository.ContactRepository
 }
 
-func NewUserService(user repository.UserRepository, invite repository.InviteRepository) UserService {
-	return &userService{userRepository: user, inviteRepository: invite}
+func NewUserService(user repository.UserRepository, invite repository.InviteRepository, contact repository.ContactRepository) UserService {
+	return &userService{userRepository: user, inviteRepository: invite, contactRepository: contact}
 }
 
 func (service *userService) GetUsersExceptID(username, cookieToken string, pagination *middleware.Pagination) (*[]entity.User, int, error) {
@@ -60,7 +61,42 @@ func (service *userService) GetUsersExceptID(username, cookieToken string, pagin
 		logger.Error("Erro ao buscar os usuários: %v", err)
 		return nil, 0, err
 	}
-	return service.mapInvitesToUsers(idString, users, totalUsers)
+	return service.mapInvitesAndContactsToUsers(idString, users, totalUsers)
+}
+
+func (service *userService) mapInvitesAndContactsToUsers(userID string, users *[]entity.User, totalUsers int) (*[]entity.User, int, error) {
+	logger.Info("Verificando convites e contatos entre os usuários...")
+	userIDs := make([]string, len(*users))
+	for i, user := range *users {
+		userIDs[i] = user.ID
+	}
+	logger.Info("Buscando convites com base nos IDs dos usuários")
+	invites, err := service.inviteRepository.FindInvitesByUsers(userID, userIDs, "")
+	if err != nil {
+		logger.Error("Erro ao buscar os convites com base nos IDs dos usuários: %v", err)
+		return nil, 0, err
+	}
+	inviteMap := service.mountInviteMap(userID, invites)
+	contacts, err := service.contactRepository.GetContactsByUser(userID)
+	if err != nil {
+		logger.Error("Erro ao buscar os contatos com base no ID do usuário logado: %v", err)
+		return nil, 0, err
+	}
+	contactMap := service.mountContactMap(userID, contacts)
+	for i := range *users {
+		user := &(*users)[i]
+		if invite, exists := inviteMap[user.ID]; exists {
+			user.InviteStatus = invite.InviteStatus
+			user.UserIdInvited = invite.UserIdInvited
+			user.UserIdInviter = invite.UserIdInviter
+		} else if contact, exists := contactMap[user.ID]; exists {
+			user.InviteStatus = contact.InviteStatus
+		} else {
+			user.InviteStatus = ""
+		}
+	}
+	logger.Info("Retornando %d usuários...", len(*users))
+	return users, totalUsers, nil
 }
 
 func (service *userService) mapInvitesToUsers(userID string, users *[]entity.User, totalUsers int) (*[]entity.User, int, error) {
@@ -75,15 +111,7 @@ func (service *userService) mapInvitesToUsers(userID string, users *[]entity.Use
 		logger.Error("Erro ao buscar os convites com base nos IDs dos usuários")
 		return nil, 0, err
 	}
-	logger.Info("Iterando convites para os usuários")
-	inviteMap := make(map[string]entity.Invite)
-	for _, invite := range invites {
-		targetID := invite.UserIdInvited
-		if invite.UserIdInviter != userID {
-			targetID = invite.UserIdInviter
-		}
-		inviteMap[targetID] = invite
-	}
+	inviteMap := service.mountInviteMap(userID, invites)
 	for i := range *users {
 		user := &(*users)[i]
 		if invite, exists := inviteMap[user.ID]; exists {
@@ -96,6 +124,32 @@ func (service *userService) mapInvitesToUsers(userID string, users *[]entity.Use
 	}
 	logger.Info("Retornando %d usuários...", len(*users))
 	return users, totalUsers, nil
+}
+
+func (service *userService) mountInviteMap(userID string, invites []entity.Invite) map[string]entity.Invite {
+	logger.Info("Iterando convites para os usuários")
+	inviteMap := make(map[string]entity.Invite)
+	for _, invite := range invites {
+		targetID := invite.UserIdInvited
+		if invite.UserIdInviter != userID {
+			targetID = invite.UserIdInviter
+		}
+		inviteMap[targetID] = invite
+	}
+	return inviteMap
+}
+
+func (service *userService) mountContactMap(userID string, contacts []entity.Contact) map[string]entity.Contact {
+	logger.Info("Iterando contatos para os usuários")
+	contactMap := make(map[string]entity.Contact)
+	for _, contact := range contacts {
+		targetID := contact.UserIdInvited.Hex()
+		if contact.UserIdInviter.Hex() != userID {
+			targetID = contact.UserIdInviter.Hex()
+		}
+		contactMap[targetID] = contact
+	}
+	return contactMap
 }
 
 func (userService *userService) CreateUser(user *entity.User) error {
@@ -183,28 +237,47 @@ func (service *userService) GetContacts(cookieToken string, pagination *middlewa
 		return nil, 0, err
 	}
 	return service.mapInvitesToUsers(userIdLogged, users, totalUsers)
-	// return service.userRepository.GetUsersWithFilter(filter, pagination)
 }
+
 func (service *userService) getAddedContacts(userIdLogged, username string, pagination *middleware.Pagination) (*[]entity.User, int, error) {
 	logger.Info("Buscando os contatos do usuário logado")
-	id, err := primitive.ObjectIDFromHex(userIdLogged)
-	if err != nil {
-		logger.Error("Erro ao converter ID do usuário logado: %v", err)
-		return nil, 0, err
-	}
-	user, err := service.userRepository.GetUserByID(id)
+	contacts, err := service.contactRepository.GetContactsByUser(userIdLogged)
 	if err != nil {
 		logger.Error("Erro ao obter o usuário através do ID: %v", err)
 		return nil, 0, err
 	}
-	if len(user.Contacts) == 0 {
+	if len(contacts) == 0 {
 		logger.Warn("O usuário não tem nenhum contato!")
 		return nil, 0, nil
 	}
-	filter := service.mountFilterByUserIDs(user.Contacts, username)
-	logger.Info("Obtendo as informações de %d contatos", len(user.Contacts))
-	return service.userRepository.GetUsersWithFilter(filter, pagination)
+	objectIDLogged, err := primitive.ObjectIDFromHex(userIdLogged)
+	if err != nil {
+		logger.Error("Erro ao converter ID do usuário logado: %v", err)
+		return nil, 0, err
+	}
+	logger.Info("Acessando os convites para extrair os IDs dos usuário")
+	var userIDs []primitive.ObjectID
+	for _, contact := range contacts {
+		userID := contact.UserIdInvited
+		if objectIDLogged != contact.UserIdInviter {
+			userID = contact.UserIdInviter
+		}
+		userIDs = append(userIDs, userID)
+	}
+	logger.Info("Retornando %d IDs", len(userIDs))
+	filter := service.mountFilterByUserIDs(userIDs, username)
+	logger.Info("Obtendo as informações de %d contatos", len(contacts))
+	users, totalUsers, err := service.userRepository.GetUsersWithFilter(filter, pagination)
+	if err != nil {
+		logger.Error("Erro ao buscar os usuários adicionados como contato: %v", err)
+		return nil, 0, err
+	}
+	for i := range *users {
+		(*users)[i].InviteStatus = contacts[i].InviteStatus
+	}
+	return users, totalUsers, nil
 }
+
 func (service *userService) getUserIDsFromInvites(userIdLogged, searchField string) ([]primitive.ObjectID, error) {
 	logger.Info("Filtrando convites pelo campo '%s'", searchField)
 	invites, err := service.inviteRepository.FindInvitesByUsers(userIdLogged, []string{""}, searchField)

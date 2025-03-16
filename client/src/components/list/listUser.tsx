@@ -16,7 +16,7 @@ export interface Item extends IUsers {
 }
 
 const invite = {
-  added: { text: "Excluir contato", style: "" },
+  added: { text: "Excluir contato", style: "text-red-600 hover:text-red-800" },
   pending: { text: "Cancelar", style: "text-sm text-red-600 hover:text-red-800" },
   none: { text: "Enviar convite", style: "text-blue-600 hover:text-blue-800" },
 }
@@ -36,7 +36,12 @@ const ListUser = ({ users, userIdLogged, text, handleInvite }: Props) => {
       styleList="min-w-[300px]"
       renderItem={(item: Item, index: number) => {
         const statusInvite = userIdLogged === item.userIdInviter ? "pending" : "received"
-        const statusKey = item.inviteStatus ? statusInvite : "none"
+        let statusKey: InviteStatus = "none"
+        if (item.inviteStatus === "added") {
+          statusKey = item.inviteStatus
+        } else {
+          statusKey = item.inviteStatus ? statusInvite : "none"
+        }
         return (
           <Card>
             <div className="flex flex-row justify-between w-full">
