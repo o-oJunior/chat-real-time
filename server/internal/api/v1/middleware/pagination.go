@@ -6,7 +6,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func ParsePagination(ctx *gin.Context) (int, int, int) {
+type Pagination struct {
+	Page   int
+	Limit  int
+	Offset int
+}
+
+func ParsePagination(ctx *gin.Context) *Pagination {
 	pageStr := ctx.Query("page")
 	page, err := strconv.Atoi(pageStr)
 	if err != nil {
@@ -20,5 +26,5 @@ func ParsePagination(ctx *gin.Context) (int, int, int) {
 		logger.Warn("(Limit) Limite inválido, será setado novo valor: %d", limit)
 	}
 	offset := (page - 1) * limit
-	return page, limit, offset
+	return &Pagination{page, limit, offset}
 }

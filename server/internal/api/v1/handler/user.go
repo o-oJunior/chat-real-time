@@ -19,6 +19,7 @@ type UserHandler interface {
 	CreateUser(*gin.Context)
 	Authentication(*gin.Context)
 	Logout(*gin.Context)
+	GetContacts(*gin.Context)
 }
 
 type userHandler struct {
@@ -30,9 +31,7 @@ func NewUserHandler(service service.UserService) UserHandler {
 }
 
 func (handler *userHandler) converterJSON(ctx *gin.Context, message string) *entity.User {
-	method := ctx.Request.Method
-	url := ctx.Request.URL
-	remoteAddr := ctx.Request.RemoteAddr
+	method, url, remoteAddr := ctx.Request.Method, ctx.Request.URL, ctx.Request.RemoteAddr
 	logger.Info("(%s - %s) %s %s", method, url, remoteAddr, message)
 	var user *entity.User
 	if err := ctx.ShouldBindJSON(&user); err != nil {
@@ -42,38 +41,46 @@ func (handler *userHandler) converterJSON(ctx *gin.Context, message string) *ent
 	return user
 }
 
+func (handler *userHandler) handleError(ctx *gin.Context, err error, statusCode int) {
+	if err.Error() == "access unauthorized" {
+		response.SendError(ctx, http.StatusUnauthorized, err.Error())
+	} else {
+		response.SendError(ctx, statusCode, "internal server error")
+	}
+}
+
+func (handler *userHandler) calculateTotalPages(totalUsers int, limit int) int {
+	return int(math.Ceil(float64(totalUsers) / float64(limit)))
+}
+
+func (handler *userHandler) sendUserListResponse(ctx *gin.Context, users *[]entity.User, totalUsers int, pagination *middleware.Pagination) {
+	totalPages := handler.calculateTotalPages(totalUsers, pagination.Limit)
+	if users == nil || len(*users) == 0 {
+		response.SendSuccess(ctx, http.StatusOK, "", bson.M{"users": []entity.User{}})
+		return
+	}
+	response.SendSuccess(ctx, http.StatusOK, "", bson.M{
+		"page":       pagination.Page,
+		"totalPages": totalPages,
+		"users":      *users,
+	})
+}
+
 func (handler *userHandler) GetUsers(ctx *gin.Context) {
-	page, limit, offset := middleware.ParsePagination(ctx)
+	pagination := middleware.ParsePagination(ctx)
 	username := ctx.Query("username")
 	cookieToken, err := ctx.Cookie("token")
 	if err != nil {
 		response.SendError(ctx, http.StatusUnauthorized, "access unauthorized")
 		return
 	}
-	logger.Info("Consultando página %d com limite %d de usuários", page, limit)
-	users, totalUsers, err := handler.userService.GetUsersExceptID(username, cookieToken, limit, offset)
+	logger.Info("Consultando página %d com limite %d de usuários", pagination.Page, pagination.Limit)
+	users, totalUsers, err := handler.userService.GetUsersExceptID(username, cookieToken, pagination)
 	if err != nil {
-		if err.Error() == "access unauthorized" {
-			response.SendError(ctx, http.StatusUnauthorized, err.Error())
-		} else {
-			response.SendError(ctx, http.StatusBadRequest, "internal server error")
-		}
+		handler.handleError(ctx, err, http.StatusBadRequest)
 		return
 	}
-	totalPages := math.Ceil(float64(totalUsers) / float64(limit))
-	if len(*users) == 0 {
-		result := bson.M{
-			"users": []entity.User{},
-		}
-		response.SendSuccess(ctx, http.StatusOK, "", result)
-		return
-	}
-	result := bson.M{
-		"page":       page,
-		"totalPages": totalPages,
-		"users":      *users,
-	}
-	response.SendSuccess(ctx, http.StatusOK, "", result)
+	handler.sendUserListResponse(ctx, users, totalUsers, pagination)
 }
 
 func (handler *userHandler) GetUserToken(ctx *gin.Context) {
@@ -104,6 +111,7 @@ func (handler *userHandler) Authentication(ctx *gin.Context) {
 	token, err := newMiddlewareToken.Generate(data)
 	if err != nil {
 		response.SendError(ctx, http.StatusInternalServerError, err.Error())
+		return
 	}
 	logger.Info("Token gerado, será armazenado nos cookies")
 	ctx.SetSameSite(http.SameSiteNoneMode)
@@ -116,4 +124,21 @@ func (handler *userHandler) Logout(ctx *gin.Context) {
 	ctx.SetSameSite(http.SameSiteNoneMode)
 	ctx.SetCookie("token", "", -1, "/", "", true, true)
 	response.SendSuccess(ctx, http.StatusOK, "logout efetuado com sucesso!", nil)
+}
+
+func (handler *userHandler) GetContacts(ctx *gin.Context) {
+	cookieToken, err := ctx.Cookie("token")
+	if err != nil {
+		response.SendError(ctx, http.StatusUnauthorized, "access unauthorized")
+		return
+	}
+	pagination := middleware.ParsePagination(ctx)
+	group := ctx.Query("group")
+	username := ctx.Query("username")
+	users, totalUsers, err := handler.userService.GetContacts(cookieToken, pagination, group, username)
+	if err != nil {
+		handler.handleError(ctx, err, http.StatusBadRequest)
+		return
+	}
+	handler.sendUserListResponse(ctx, users, totalUsers, pagination)
 }

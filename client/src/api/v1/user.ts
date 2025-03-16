@@ -95,4 +95,22 @@ export default class API_V1_USER {
         return MESSAGE_ERROR
       }
   }
+
+  async getContacts(page: number = 1, limit: number = 10, group: string = "", username: string = ""){
+    try {
+      const includeGroup = group !== "" ? `&group=${group}` : ""
+      const includeUsername = username !== "" ? `&username=${username}` : ""
+      const result = await fetch(`${this.BASE_URL_API_V1}/user/contacts?page=${page}&limit=${limit}${includeGroup}${includeUsername}`, 
+        {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      })
+      return result.json()
+    } catch (error) {
+      return MESSAGE_ERROR
+    }
+}
 }

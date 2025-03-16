@@ -1,21 +1,14 @@
 import { ChangeEvent, FormEvent, useState } from "react"
 
 type Props = {
-  handleSearch: (event: FormEvent) => void
   handleChangeInput: (event: ChangeEvent<HTMLInputElement>) => void
   query: string
   textPlaceholder: string
   nameInput?: string
 }
-export default function Search({
-  query,
-  textPlaceholder,
-  handleSearch,
-  handleChangeInput,
-  nameInput,
-}: Props) {
+export default function Search({ query, textPlaceholder, handleChangeInput, nameInput }: Props) {
   return (
-    <form onSubmit={handleSearch} className="flex items-center max-w-lg w-full">
+    <form className="flex items-center max-w-lg w-full">
       <input
         type="text"
         value={query}

@@ -1,11 +1,12 @@
-const MESSAGE_ERROR = {statusCode: 500, error: "Erro na conexão com o servidor, tente novamente mais tarde!"}
+import { InviteStatus } from "@/components/list/listUser"
 
-type InviteStatus = "none" | "pending" | "accepted"
+const MESSAGE_ERROR = {statusCode: 500, error: "Erro na conexão com o servidor, tente novamente mais tarde!"}
 
 export interface Invite {
   userIdInviter?: string
   inviteStatus: InviteStatus
 }
+
 export default class API_V1_INVITE {
     private BASE_URL_API_V1: string
   
