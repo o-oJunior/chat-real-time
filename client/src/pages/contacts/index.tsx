@@ -1,12 +1,6 @@
 import API_V1_INVITE from "@/api/v1/invite"
 import API_V1_USER from "@/api/v1/user"
-import ListUser, {
-  Dropdown,
-  initialValueDropdown,
-  InviteStatus,
-  Item,
-  IUsers,
-} from "@/components/list/listUser"
+import ListUser, { InviteStatus, Item, IUsers } from "@/components/list/listUser"
 import Alert, { AlertProps, initialValueAlert } from "@/components/modal/alert"
 import Modal from "@/components/modal/modal"
 import Pagination, { initialValuePagination, TApiPagination } from "@/components/pagination/pagination"
@@ -41,7 +35,6 @@ const Contacts = () => {
   const [alert, setAlert] = useState<AlertProps>(initialValueAlert)
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false)
   const [search, setSearch] = useState<TSearch>(initialValueSearch)
-  const [dropdown, setDropdown] = useState<Dropdown>(initialValueDropdown)
   const [active, setActive] = useState<string>("Adicionados")
   const optionsMenu = ["Adicionados", "Recebidos", "Enviados"]
   const groupContacts = useRef<Group>("added")
@@ -80,12 +73,7 @@ const Contacts = () => {
     } else {
       setSearch(initialValueSearch)
     }
-    setDropdown(initialValueDropdown)
     setIsModalOpen(!isModalOpen)
-  }
-
-  const handleSearch = (e: FormEvent) => {
-    e.preventDefault()
   }
 
   const handleChangeInput = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -148,27 +136,15 @@ const Contacts = () => {
     }
   }
 
-  const handleInvite = async (item: Item, index: number) => {
+  const handleInvite = async (item: Item, index: number, inviteStatus: InviteStatus) => {
     if (!item.inviteStatus && isModalOpen) {
       await sendInvite(item.id)
       users[index].inviteStatus = "pending"
       users[index].userIdInviter = user.id
       setUsers([...users])
-    } else if (item.inviteStatus === "pending" && item.userIdInviter === user.id) {
-      const options = [
-        {
-          text: "Cancelar Pedido",
-          function: (item: Item, index: number) => updateInvite(item, index, "none"),
-        },
-      ]
-      setDropdown({ isVisible: !dropdown.isVisible, indexVisible: index, options: options })
-    } else if (item.inviteStatus === "pending") {
-      const options = [
-        { text: "Aceitar", function: (item: Item, index: number) => updateInvite(item, index, "added") },
-        { text: "Recusar", function: (item: Item, index: number) => updateInvite(item, index, "none") },
-      ]
-      setDropdown({ isVisible: !dropdown.isVisible, indexVisible: index, options: options })
+      return
     }
+    updateInvite(item, index, inviteStatus)
   }
 
   const updateInvite = async (item: Item, index: number, statusInvite: InviteStatus) => {
@@ -190,7 +166,6 @@ const Contacts = () => {
       const listContacts = contacts.filter((contact) => contact.id !== item.id)
       setContacts(listContacts)
     }
-    setDropdown(initialValueDropdown)
   }
 
   const handleOptionMenu = async (item: "Adicionados" | "Recebidos" | "Enviados") => {
@@ -212,7 +187,6 @@ const Contacts = () => {
       <div>
         <div className="flex row items-center justify-between w-full px-20 py-10">
           <Search
-            handleSearch={handleSearch}
             handleChangeInput={handleChangeInput}
             textPlaceholder="contatos"
             nameInput="contacts"
@@ -242,20 +216,13 @@ const Contacts = () => {
         <Modal isOpen={isModalOpen} onClose={handleModal}>
           <div className="flex flex-col gap-5 h-full">
             <Search
-              handleSearch={handleSearch}
               handleChangeInput={handleChangeInput}
               textPlaceholder="nome de usuário"
               nameInput="users"
               query={search.users}
             />
             <div className="flex-1 overflow-auto gap-5">
-              <ListUser
-                users={users}
-                userIdLogged={user.id}
-                text="usuário"
-                handleInvite={handleInvite}
-                dropdown={dropdown}
-              />
+              <ListUser users={users} userIdLogged={user.id} text="usuário" handleInvite={handleInvite} />
             </div>
             <Pagination
               currentPage={invitePagination!.currentPage}
@@ -269,13 +236,7 @@ const Contacts = () => {
         )}
         <div className="flex flex-col justify-between w-full px-20">
           <div className="flex-1 rounded-lg p-10">
-            <ListUser
-              users={contacts}
-              userIdLogged={user.id}
-              text="contato"
-              handleInvite={handleInvite}
-              dropdown={dropdown}
-            />
+            <ListUser users={contacts} userIdLogged={user.id} text="contato" handleInvite={handleInvite} />
           </div>
           {contacts.length > 0 && (
             <div>
