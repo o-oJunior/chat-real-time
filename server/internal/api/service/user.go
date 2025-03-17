@@ -77,7 +77,12 @@ func (service *userService) mapInvitesAndContactsToUsers(userID string, users *[
 		return nil, 0, err
 	}
 	inviteMap := service.mountInviteMap(userID, invites)
-	contacts, err := service.contactRepository.GetContactsByUser(userID)
+	objectID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		logger.Error("Erro ao converter ID (string) para ObjectID: %v", err)
+		return nil, 0, fmt.Errorf("error internal server")
+	}
+	contacts, err := service.contactRepository.GetContactsByUser(objectID)
 	if err != nil {
 		logger.Error("Erro ao buscar os contatos com base no ID do usuário logado: %v", err)
 		return nil, 0, err
@@ -90,7 +95,9 @@ func (service *userService) mapInvitesAndContactsToUsers(userID string, users *[
 			user.UserIdInvited = invite.UserIdInvited
 			user.UserIdInviter = invite.UserIdInviter
 		} else if contact, exists := contactMap[user.ID]; exists {
-			user.InviteStatus = contact.InviteStatus
+			user.InviteStatus = contact.Status
+			user.UserIdInvited = contact.UserIdTarget.Hex()
+			user.UserIdInviter = contact.UserIdActor.Hex()
 		} else {
 			user.InviteStatus = ""
 		}
@@ -143,9 +150,9 @@ func (service *userService) mountContactMap(userID string, contacts []entity.Con
 	logger.Info("Iterando contatos para os usuários")
 	contactMap := make(map[string]entity.Contact)
 	for _, contact := range contacts {
-		targetID := contact.UserIdInvited.Hex()
-		if contact.UserIdInviter.Hex() != userID {
-			targetID = contact.UserIdInviter.Hex()
+		targetID := contact.UserIdTarget.Hex()
+		if contact.UserIdActor.Hex() != userID {
+			targetID = contact.UserIdActor.Hex()
 		}
 		contactMap[targetID] = contact
 	}
@@ -239,9 +246,14 @@ func (service *userService) GetContacts(cookieToken string, pagination *middlewa
 	return service.mapInvitesToUsers(userIdLogged, users, totalUsers)
 }
 
-func (service *userService) getAddedContacts(userIdLogged, username string, pagination *middleware.Pagination) (*[]entity.User, int, error) {
+func (service *userService) getAddedContacts(userIdLogged string, username string, pagination *middleware.Pagination) (*[]entity.User, int, error) {
 	logger.Info("Buscando os contatos do usuário logado")
-	contacts, err := service.contactRepository.GetContactsByUser(userIdLogged)
+	objectID, err := primitive.ObjectIDFromHex(userIdLogged)
+	if err != nil {
+		logger.Error("Erro ao converter ID (string) do usuário logado para ObjectID: %v", err)
+		return nil, 0, fmt.Errorf("error internal server")
+	}
+	contacts, err := service.contactRepository.GetContactsByUser(objectID)
 	if err != nil {
 		logger.Error("Erro ao obter o usuário através do ID: %v", err)
 		return nil, 0, err
@@ -258,9 +270,9 @@ func (service *userService) getAddedContacts(userIdLogged, username string, pagi
 	logger.Info("Acessando os convites para extrair os IDs dos usuário")
 	var userIDs []primitive.ObjectID
 	for _, contact := range contacts {
-		userID := contact.UserIdInvited
-		if objectIDLogged != contact.UserIdInviter {
-			userID = contact.UserIdInviter
+		userID := contact.UserIdTarget
+		if objectIDLogged != contact.UserIdActor {
+			userID = contact.UserIdActor
 		}
 		userIDs = append(userIDs, userID)
 	}
@@ -272,8 +284,14 @@ func (service *userService) getAddedContacts(userIdLogged, username string, pagi
 		logger.Error("Erro ao buscar os usuários adicionados como contato: %v", err)
 		return nil, 0, err
 	}
+	contactMap := service.mountContactMap(userIdLogged, contacts)
 	for i := range *users {
-		(*users)[i].InviteStatus = contacts[i].InviteStatus
+		user := &(*users)[i]
+		if contact, exists := contactMap[user.ID]; exists {
+			user.InviteStatus = contact.Status
+			user.UserIdInvited = contact.UserIdTarget.Hex()
+			user.UserIdInviter = contact.UserIdActor.Hex()
+		}
 	}
 	return users, totalUsers, nil
 }

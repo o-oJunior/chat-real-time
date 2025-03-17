@@ -1,5 +1,6 @@
-import API_V1_INVITE from "@/api/v1/invite"
-import API_V1_USER from "@/api/v1/user"
+import ContactAPIService from "@/api/v1/contact"
+import InviteAPIService from "@/api/v1/invite"
+import UserAPIService from "@/api/v1/user"
 import ListUser, { InviteStatus, Item, IUsers } from "@/components/list/listUser"
 import Alert, { AlertProps, initialValueAlert } from "@/components/modal/alert"
 import Modal from "@/components/modal/modal"
@@ -9,7 +10,7 @@ import { IResponse } from "@/interfaces/response"
 import { useAppSelector } from "@/redux/hook"
 import { useUser } from "@/redux/user/slice"
 import Head from "next/head"
-import React, { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react"
+import React, { ChangeEvent, useEffect, useRef, useState } from "react"
 
 type Group = "added" | "received" | "sent"
 
@@ -48,8 +49,8 @@ const Contacts = () => {
   }
 
   const getContacts = async (page: number, limit: number, group: string, username: string) => {
-    const v1 = new API_V1_USER()
-    const response: IResponse = await v1.getContacts(page, limit, group, username)
+    const userService = new UserAPIService()
+    const response: IResponse = await userService.getContacts(page, limit, group, username)
     if (response.statusCode !== 200) {
       setAlert({
         message: "Ocorreu um erro inesperado ao obter os usuários, tente novamente mais tarde!",
@@ -87,8 +88,8 @@ const Contacts = () => {
   }
 
   const getUsers = async (page?: number, limit?: number, username?: string) => {
-    const v1 = new API_V1_USER()
-    const response: IResponse = await v1.getUsers(page, limit, username)
+    const userService = new UserAPIService()
+    const response: IResponse = await userService.getUsers(page, limit, username)
     if (response.statusCode !== 200) {
       setAlert({
         message: "Ocorreu um erro inesperado ao obter os usuários, tente novamente mais tarde!",
@@ -124,8 +125,8 @@ const Contacts = () => {
     const date = new Date().toISOString()
     const status: InviteStatus = "pending"
     const invite = { userIdInvited: idInvited, inviteStatus: status, invitedAt: date }
-    const v1 = new API_V1_INVITE()
-    const response: IResponse = await v1.sendInvite(invite)
+    const inviteService = new InviteAPIService()
+    const response: IResponse = await inviteService.sendInvite(invite)
     if (response.statusCode !== 200) {
       setAlert({
         message: "Ocorreu um erro inesperado ao enviar o convite, tente novamente mais tarde!",
@@ -141,16 +142,21 @@ const Contacts = () => {
       await sendInvite(item.id)
       users[index].inviteStatus = "pending"
       users[index].userIdInviter = user.id
+      users[index].userIdInvited = item.id
       setUsers([...users])
+      return
+    }
+    if (item.inviteStatus === "added") {
+      item.inviteStatus = inviteStatus
+      updateContact(item, index, inviteStatus)
       return
     }
     updateInvite(item, index, inviteStatus)
   }
 
-  const updateInvite = async (item: Item, index: number, statusInvite: InviteStatus) => {
-    item.inviteStatus = statusInvite
-    const v1 = new API_V1_INVITE()
-    const response: IResponse = await v1.updateStatusInvite(item)
+  const updateContact = async (item: Item, index: number, statusInvite: InviteStatus) => {
+    const contactService = new ContactAPIService()
+    const response: IResponse = await contactService.updateStatusContact(item)
     if (response.statusCode !== 200) {
       setAlert({
         message: "Ocorreu um erro inesperado ao enviar o convite, tente novamente mais tarde!",
@@ -159,8 +165,32 @@ const Contacts = () => {
       })
       return
     }
+    updateValues(item, index, statusInvite)
+  }
+
+  const updateInvite = async (item: Item, index: number, statusInvite: InviteStatus) => {
+    item.inviteStatus = statusInvite
+    const inviteService = new InviteAPIService()
+    const response: IResponse = await inviteService.updateStatusInvite(item)
+    if (response.statusCode !== 200) {
+      setAlert({
+        message: "Ocorreu um erro inesperado ao enviar o convite, tente novamente mais tarde!",
+        type: "error",
+        modalOpen: true,
+      })
+      return
+    }
+    updateValues(item, index, statusInvite)
+  }
+
+  const updateValues = (item: Item, index: number, statusInvite: InviteStatus) => {
     if (isModalOpen) {
-      users[index].inviteStatus = statusInvite
+      if (statusInvite === "none") {
+        delete users[index].inviteStatus
+      } else {
+        users[index].inviteStatus = statusInvite
+      }
+
       setUsers([...users])
     } else {
       const listContacts = contacts.filter((contact) => contact.id !== item.id)
@@ -231,9 +261,12 @@ const Contacts = () => {
             />
           </div>
         </Modal>
-        {alert!.modalOpen && (
-          <Alert type={alert!.type} message={alert!.message} onClose={() => setAlert(initialValueAlert)} />
-        )}
+        <Alert
+          isOpen={alert.modalOpen}
+          type={alert!.type}
+          message={alert!.message}
+          onClose={() => setAlert(initialValueAlert)}
+        />
         <div className="flex flex-col justify-between w-full px-20">
           <div className="flex-1 rounded-lg p-10">
             <ListUser users={contacts} userIdLogged={user.id} text="contato" handleInvite={handleInvite} />

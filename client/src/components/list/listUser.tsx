@@ -8,7 +8,8 @@ export interface IUsers {
   username: string
   description: string
   userIdInviter?: string
-  inviteStatus: InviteStatus
+  userIdInvited?: string
+  inviteStatus?: InviteStatus
 }
 
 export interface Item extends IUsers {

@@ -73,22 +73,28 @@ func (service *inviteService) UpdateStatusInvite(invite *entity.Invite, statusIn
 	var userIDs = []string{invite.UserIdInvited, invite.UserIdInviter}
 	invites, err := service.inviteRepository.FindInvitesByUsers(idString, userIDs, "")
 	if err != nil {
+		logger.Error("Err ao buscar os convites: %v", err)
 		return err
 	}
 	inviteData := invites[0]
+	inviteID, err := primitive.ObjectIDFromHex(inviteData.ID)
+	if err != nil {
+		logger.Error("Erro ao converter ID (string) para ObjectID: %v", err)
+		return fmt.Errorf("error internal server")
+	}
 	if statusInvite == "none" {
 		logger.Info("Deletando o convite...")
-		err = service.inviteRepository.DeleteInviteById(inviteData.ID)
+		err = service.inviteRepository.DeleteInviteById(inviteID)
 	} else if statusInvite == "added" {
 		logger.Info("Adicionando contato e deletando o convite...")
 		err = service.insertContact(invite)
 		if err != nil {
 			return fmt.Errorf("error internal server")
 		}
-		err = service.inviteRepository.DeleteInviteById(inviteData.ID)
+		err = service.inviteRepository.DeleteInviteById(inviteID)
 	} else {
 		logger.Info("Atualizando o status do convite...")
-		err = service.inviteRepository.UpdateStatusInvite(inviteData.ID, statusInvite)
+		err = service.inviteRepository.UpdateStatusInvite(inviteID, statusInvite)
 	}
 	if err != nil {
 		return fmt.Errorf("error internal server")
@@ -98,7 +104,7 @@ func (service *inviteService) UpdateStatusInvite(invite *entity.Invite, statusIn
 }
 
 func (service *inviteService) insertContact(invite *entity.Invite) error {
-	inviteAt := time.Now().UnixMilli()
+	timestamp := time.Now().UnixMilli()
 	userIdInviter, err := primitive.ObjectIDFromHex(invite.UserIdInviter)
 	if err != nil {
 		logger.Error("Erro ao converter ID do usuário que enviou o convite: %v", err)
@@ -110,10 +116,11 @@ func (service *inviteService) insertContact(invite *entity.Invite) error {
 		return err
 	}
 	contact := &entity.Contact{
-		InviteStatus:          invite.InviteStatus,
-		UserIdInvited:         userIdInvited,
-		UserIdInviter:         userIdInviter,
-		InvitedAtMilliseconds: inviteAt,
+		Status:       invite.InviteStatus,
+		UserIdTarget: userIdInvited,
+		UserIdActor:  userIdInviter,
+		CreatedAt:    timestamp,
+		UpdatedAt:    timestamp,
 	}
 	err = service.contactRepository.InsertContact(contact)
 	if err != nil {

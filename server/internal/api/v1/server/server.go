@@ -31,5 +31,6 @@ func InitApiV1() {
 	v1 := rt.Group("/api/v1")
 	router.UserRouters(v1, database)
 	router.InviteRouters(v1, database)
+	router.ContactRouters(v1, database)
 	rt.Run(port)
 }
