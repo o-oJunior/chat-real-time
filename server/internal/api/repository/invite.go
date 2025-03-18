@@ -11,7 +11,7 @@ import (
 
 type InviteRepository interface {
 	InsertInvite(*entity.Invite) error
-	FindInvitesByUsers(string, []string, string) ([]entity.Invite, error)
+	FindInvitesByUsers(primitive.ObjectID, []primitive.ObjectID, string) ([]entity.Invite, error)
 	UpdateStatusInvite(primitive.ObjectID, string) error
 	DeleteInviteById(primitive.ObjectID) error
 }
@@ -33,7 +33,7 @@ func (repository *inviteRepository) InsertInvite(invite *entity.Invite) error {
 	return nil
 }
 
-func (repository *inviteRepository) FindInvitesByUsers(userIdLogged string, userIds []string, searchField string) ([]entity.Invite, error) {
+func (repository *inviteRepository) FindInvitesByUsers(userIdLogged primitive.ObjectID, userIds []primitive.ObjectID, searchField string) ([]entity.Invite, error) {
 	collection := repository.database.Collection("invites")
 	var filter bson.M
 	if searchField == "userIdInvited" || searchField == "userIdInviter" {

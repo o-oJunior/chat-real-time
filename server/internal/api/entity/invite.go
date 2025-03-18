@@ -1,18 +1,22 @@
 package entity
 
-import "fmt"
+import (
+	"fmt"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
 
 type Invite struct {
-	ID                    string `json:"id,omitempty" bson:"_id,omitempty"`
-	InviteStatus          string `json:"inviteStatus,omitempty" bson:"inviteStatus,omitempty"`
-	InvitedAtMilliseconds int64  `json:"omitempty" bson:"invitedAt,omitempty"`
-	InvitedAt             string `json:"invitedAt,omitempty" bson:"omitempty"`
-	UserIdInvited         string `json:"userIdInvited,omitempty" bson:"userIdInvited,omitempty"`
-	UserIdInviter         string `json:"userIdInviter,omitempty" bson:"userIdInviter,omitempty"`
+	ID                      string             `json:"id,omitempty" bson:"_id,omitempty"`
+	Status                  string             `json:"status,omitempty" bson:"status,omitempty"`
+	CreatedAtAtMilliseconds int64              `json:"omitempty" bson:"createdAt,omitempty"`
+	CreatedAt               string             `json:"createdAt,omitempty" bson:"omitempty"`
+	UserIdInvited           primitive.ObjectID `json:"userIdInvited,omitempty" bson:"userIdInvited,omitempty"`
+	UserIdInviter           primitive.ObjectID `json:"userIdInviter,omitempty" bson:"userIdInviter,omitempty"`
 }
 
 func (invite *Invite) ValidateRegisterInvite() error {
-	if invite.UserIdInvited == "" || invite.InvitedAt == "" || invite.InviteStatus == "" {
+	if invite.UserIdInvited.Hex() == "" || invite.CreatedAt == "" || invite.Status == "" {
 		return fmt.Errorf("o corpo da requisição está vazio ou mal formatado")
 	}
 	return nil

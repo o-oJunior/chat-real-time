@@ -1,14 +1,12 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 	"server/internal/api/entity"
 	"server/internal/api/service"
 	"server/internal/api/v1/response"
 
 	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type ContactHandler interface {
@@ -33,20 +31,10 @@ func (handler *contactHandler) converterJsonContact(ctx *gin.Context, message st
 		logger.Error("Erro ao converter o JSON: %v", err)
 		panic(err)
 	}
-	userIdInviter, err := primitive.ObjectIDFromHex(invite.UserIdInviter)
-	if err != nil {
-		logger.Error("Erro ao converter ID do usuário que enviou o convite: %v", err)
-		return nil, fmt.Errorf("error internal server")
-	}
-	userIdInvited, err := primitive.ObjectIDFromHex(invite.UserIdInvited)
-	if err != nil {
-		logger.Error("Erro ao converter ID do usuário convidado: %v", err)
-		return nil, fmt.Errorf("error internal server")
-	}
 	contact := &entity.Contact{
-		Status:       invite.InviteStatus,
-		UserIdTarget: userIdInvited,
-		UserIdActor:  userIdInviter,
+		Status:       invite.Status,
+		UserIdTarget: invite.UserIdInvited,
+		UserIdActor:  invite.UserIdInviter,
 	}
 	return contact, nil
 }

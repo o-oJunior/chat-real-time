@@ -23,6 +23,7 @@ type User struct {
 	UserIdInvited         string `json:"userIdInvited,omitempty" bson:"userIdInvited,omitempty"`
 	UserIdInviter         string `json:"userIdInviter,omitempty" bson:"userIdInviter, omitempty"`
 	InviteStatus          string `json:"inviteStatus,omitempty" bson:"inviteStatus,omitempty"`
+	InvitedAt             string `json:"invitedAt,omitempty" bson:"invitedAt,omitempty"`
 }
 
 func (user *User) ValidateCreateUser() error {

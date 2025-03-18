@@ -45,7 +45,7 @@ const Contacts = () => {
   }, [])
 
   const getContactsByUseEffect = async (group: string, username: string) => {
-    await getContacts(1, 20, group, username)
+    await getContacts(1, 21, group, username)
   }
 
   const getContacts = async (page: number, limit: number, group: string, username: string) => {
@@ -83,7 +83,7 @@ const Contacts = () => {
     if (name === "users") {
       await getUsers(1, 10, value)
     } else if (name === "contacts") {
-      await getContacts(1, 20, groupContacts.current, value)
+      await getContacts(1, 21, groupContacts.current, value)
     }
   }
 
@@ -113,7 +113,7 @@ const Contacts = () => {
 
   const handlePageChange = async (page: number, list: "users" | "contacts") => {
     const update = {
-      contacts: async () => await getContacts(page, 20, groupContacts.current, search.contacts),
+      contacts: async () => await getContacts(page, 21, groupContacts.current, search.contacts),
       users: async () => await getUsers(page, 10, search.users),
     }
     if (update[list]) {
@@ -206,7 +206,7 @@ const Contacts = () => {
     }
     setActive(item)
     groupContacts.current = groups[item] as Group
-    await getContacts(1, 20, groupContacts.current, "")
+    await getContacts(1, 21, groupContacts.current, "")
   }
 
   return (
