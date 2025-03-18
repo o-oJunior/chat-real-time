@@ -11,9 +11,9 @@ import (
 
 type InviteRepository interface {
 	InsertInvite(*entity.Invite) error
-	FindInvitesByUsers(string, []string, string) ([]entity.Invite, error)
-	UpdateStatusInvite(string, string) error
-	DeleteInviteById(string) error
+	FindInvitesByUsers(primitive.ObjectID, []primitive.ObjectID, string) ([]entity.Invite, error)
+	UpdateStatusInvite(primitive.ObjectID, string) error
+	DeleteInviteById(primitive.ObjectID) error
 }
 
 type inviteRepository struct {
@@ -33,7 +33,7 @@ func (repository *inviteRepository) InsertInvite(invite *entity.Invite) error {
 	return nil
 }
 
-func (repository *inviteRepository) FindInvitesByUsers(userIdLogged string, userIds []string, searchField string) ([]entity.Invite, error) {
+func (repository *inviteRepository) FindInvitesByUsers(userIdLogged primitive.ObjectID, userIds []primitive.ObjectID, searchField string) ([]entity.Invite, error) {
 	collection := repository.database.Collection("invites")
 	var filter bson.M
 	if searchField == "userIdInvited" || searchField == "userIdInviter" {
@@ -60,29 +60,21 @@ func (repository *inviteRepository) FindInvitesByUsers(userIdLogged string, user
 	return invites, nil
 }
 
-func (repository *inviteRepository) UpdateStatusInvite(idInvite string, statusInvite string) error {
+func (repository *inviteRepository) UpdateStatusInvite(id primitive.ObjectID, statusInvite string) error {
 	collection := repository.database.Collection("invites")
-	id, err := primitive.ObjectIDFromHex(idInvite)
-	if err != nil {
-		return err
-	}
 	filter := bson.M{"_id": id}
 	update := bson.M{"$set": bson.M{"inviteStatus": statusInvite}}
-	_, err = collection.UpdateOne(context.Background(), filter, update)
+	_, err := collection.UpdateOne(context.Background(), filter, update)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (repository *inviteRepository) DeleteInviteById(idInvite string) error {
+func (repository *inviteRepository) DeleteInviteById(id primitive.ObjectID) error {
 	collection := repository.database.Collection("invites")
-	id, err := primitive.ObjectIDFromHex(idInvite)
-	if err != nil {
-		return err
-	}
 	filter := bson.M{"_id": id}
-	_, err = collection.DeleteOne(context.Background(), filter)
+	_, err := collection.DeleteOne(context.Background(), filter)
 	if err != nil {
 		return err
 	}

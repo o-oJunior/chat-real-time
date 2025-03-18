@@ -1,12 +1,14 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"server/internal/api/entity"
 	"server/internal/api/service"
 	"server/internal/api/v1/response"
 
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type InviteHandler interface {
@@ -22,15 +24,40 @@ func NewInviteHandler(service service.InviteService) InviteHandler {
 	return &inviteHandler{service}
 }
 
+func (handler *inviteHandler) convertStringToObjectID(id string) (primitive.ObjectID, error) {
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		logger.Error("Erro ao converter ID (string) para ObjectID: %v", err)
+		return primitive.ObjectID{}, fmt.Errorf("error internal server")
+	}
+	return objectID, nil
+}
+
 func (handler *inviteHandler) converterJsonInvite(ctx *gin.Context, message string) *entity.Invite {
 	method := ctx.Request.Method
 	url := ctx.Request.URL
 	remoteAddr := ctx.Request.RemoteAddr
 	logger.Info("(%s - %s) %s %s", method, url, remoteAddr, message)
-	var invite *entity.Invite
-	if err := ctx.ShouldBindJSON(&invite); err != nil {
+	var user *entity.User
+	if err := ctx.ShouldBindJSON(&user); err != nil {
 		logger.Error("Erro ao converter o JSON: %v", err)
 		panic(err)
+	}
+	userIdInvited, err := handler.convertStringToObjectID(user.UserIdInvited)
+	if err != nil {
+		panic(err)
+	}
+	invite := &entity.Invite{
+		Status:        user.InviteStatus,
+		CreatedAt:     user.InvitedAt,
+		UserIdInvited: userIdInvited,
+	}
+	if user.UserIdInviter != "" {
+		userIdInviter, err := handler.convertStringToObjectID(user.UserIdInviter)
+		if err != nil {
+			panic(err)
+		}
+		invite.UserIdInviter = userIdInviter
 	}
 	return invite
 }

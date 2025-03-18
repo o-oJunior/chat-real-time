@@ -4,27 +4,26 @@ import (
 	"fmt"
 	"regexp"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type User struct {
-	ID                    string               `json:"id,omitempty" bson:"_id,omitempty"`
-	Username              string               `json:"username,omitempty" bson:"username"`
-	FirstName             string               `json:"firstName,omitempty" bson:"firstName"`
-	LastName              string               `json:"lastName,omitempty" bson:"lastName"`
-	Email                 string               `json:"email,omitempty" bson:"email"`
-	Status                string               `json:"status,omitempty" bson:"status"`
-	Description           string               `json:"description,omitempty" bson:"description"`
-	CreatedAtMilliseconds int64                `json:"createdAtMili,omitempty" bson:"createdAt,omitempty"`
-	CreatedAt             string               `json:"createdAt,omitempty" bson:"omitempty"`
-	Password              string               `json:"password,omitempty" bson:"password,omitempty"`
-	HashPassword          string               `json:"hashPassword,omitempty" bson:"hashPassword,omitempty"`
-	Token                 string               `json:"token,omitempty" bson:"token,omitempty"`
-	UserIdInvited         string               `json:"userIdInvited,omitempty" bson:"userIdInvited,omitempty"`
-	UserIdInviter         string               `json:"userIdInviter,omitempty" bson:"userIdInviter, omitempty"`
-	InviteStatus          string               `json:"inviteStatus,omitempty" bson:"inviteStatus,omitempty"`
-	Contacts              []primitive.ObjectID `json:"idsContacts,omitempty" bson:"idsContacts,omitempty"`
+	ID                    string `json:"id,omitempty" bson:"_id,omitempty"`
+	Username              string `json:"username,omitempty" bson:"username"`
+	FirstName             string `json:"firstName,omitempty" bson:"firstName"`
+	LastName              string `json:"lastName,omitempty" bson:"lastName"`
+	Email                 string `json:"email,omitempty" bson:"email"`
+	Status                string `json:"status,omitempty" bson:"status"`
+	Description           string `json:"description,omitempty" bson:"description"`
+	CreatedAtMilliseconds int64  `json:"createdAtMili,omitempty" bson:"createdAt,omitempty"`
+	CreatedAt             string `json:"createdAt,omitempty" bson:"omitempty"`
+	Password              string `json:"password,omitempty" bson:"password,omitempty"`
+	HashPassword          string `json:"hashPassword,omitempty" bson:"hashPassword,omitempty"`
+	Token                 string `json:"token,omitempty" bson:"token,omitempty"`
+	UserIdInvited         string `json:"userIdInvited,omitempty" bson:"userIdInvited,omitempty"`
+	UserIdInviter         string `json:"userIdInviter,omitempty" bson:"userIdInviter, omitempty"`
+	InviteStatus          string `json:"inviteStatus,omitempty" bson:"inviteStatus,omitempty"`
+	InvitedAt             string `json:"invitedAt,omitempty" bson:"invitedAt,omitempty"`
 }
 
 func (user *User) ValidateCreateUser() error {
@@ -87,8 +86,4 @@ func (user *User) ComparePassword(hashedPassword string) error {
 		return fmt.Errorf("senha inválida")
 	}
 	return nil
-}
-
-func (user *User) GetID() string {
-	return user.ID
 }

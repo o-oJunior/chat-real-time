@@ -1,10 +1,12 @@
 import React from "react"
+import ReactDOM from "react-dom"
 
 type AlertType = "error" | "warning" | "success"
 
 interface AlertModalProps {
   type: AlertType
   message: string
+  isOpen: boolean
   onClose: () => void
 }
 
@@ -61,10 +63,10 @@ const icons = {
   ),
 }
 
-const AlertModal: React.FC<AlertModalProps> = ({ type, message, onClose }) => {
+const AlertModal: React.FC<AlertModalProps> = ({ type, message, isOpen, onClose }) => {
+  if (!isOpen) return null
   const icon = icons[type]
-
-  return (
+  return ReactDOM.createPortal(
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
       <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
         <div className="text-center mb-4">{icon}</div>
@@ -80,7 +82,8 @@ const AlertModal: React.FC<AlertModalProps> = ({ type, message, onClose }) => {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 
