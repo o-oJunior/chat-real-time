@@ -1,7 +1,7 @@
 package router
 
 import (
-	"server/internal/api/dependency"
+	"server/internal/api/injector"
 	"server/internal/api/v1/middleware"
 
 	"github.com/gin-gonic/gin"
@@ -10,7 +10,7 @@ import (
 
 func InviteRouters(router *gin.RouterGroup, database *mongo.Database) {
 	rt := router.Group("/invite")
-	handler := dependency.InitializeInvite(database)
+	handler := injector.InitializeInvite(database)
 	middleware := middleware.NewMiddlewareToken()
 	rt.POST("/send", middleware.ValidateCookie, handler.InsertInvite)
 	rt.PUT("/update/:status", middleware.ValidateCookie, handler.UpdateStatusInvite)

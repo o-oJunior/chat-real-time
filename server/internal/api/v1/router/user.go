@@ -1,7 +1,7 @@
 package router
 
 import (
-	"server/internal/api/dependency"
+	"server/internal/api/injector"
 	"server/internal/api/v1/middleware"
 
 	"github.com/gin-gonic/gin"
@@ -10,7 +10,7 @@ import (
 
 func UserRouters(router *gin.RouterGroup, database *mongo.Database) {
 	rt := router.Group("/user")
-	handler := dependency.InitializeUser(database)
+	handler := injector.InitializeUser(database)
 	middleware := middleware.NewMiddlewareToken()
 	rt.GET("/search", handler.GetUsers)
 	rt.POST("/create", handler.CreateUser)
