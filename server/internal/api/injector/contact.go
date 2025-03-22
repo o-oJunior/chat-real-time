@@ -1,4 +1,4 @@
-package dependency
+package injector
 
 import (
 	"server/internal/api/repository"
@@ -11,6 +11,5 @@ import (
 func InitializeContact(database *mongo.Database) handler.ContactHandler {
 	contactRepository := repository.NewContactRepository(database)
 	contactService := service.NewContactService(contactRepository)
-	contactHandler := handler.NewContactHandler(contactService)
-	return contactHandler
+	return handler.NewContactHandler(contactService)
 }

@@ -1,4 +1,4 @@
-package dependency
+package injector
 
 import (
 	"server/internal/api/repository"
@@ -13,6 +13,5 @@ func InitializeUser(database *mongo.Database) handler.UserHandler {
 	inviteRepository := repository.NewInviteRepository(database)
 	contactRepository := repository.NewContactRepository(database)
 	userService := service.NewUserService(userRepository, inviteRepository, contactRepository)
-	userHandler := handler.NewUserHandler(userService)
-	return userHandler
+	return handler.NewUserHandler(userService)
 }

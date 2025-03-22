@@ -1,4 +1,4 @@
-package dependency
+package injector
 
 import (
 	"server/internal/api/repository"
@@ -12,6 +12,5 @@ func InitializeInvite(database *mongo.Database) handler.InviteHandler {
 	inviteRepository := repository.NewInviteRepository(database)
 	contactRepository := repository.NewContactRepository(database)
 	inviteService := service.NewInviteService(inviteRepository, contactRepository)
-	inviteHandler := handler.NewInviteHandler(inviteService)
-	return inviteHandler
+	return handler.NewInviteHandler(inviteService)
 }
