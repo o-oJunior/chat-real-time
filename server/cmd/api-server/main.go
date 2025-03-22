@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"server/internal/api/v1/server"
 	"server/internal/config"
 
@@ -11,7 +12,8 @@ func main() {
 	logger := config.NewLogger("main")
 	if err := godotenv.Load("../../../.env"); err != nil {
 		logger.Error("Erro ao carregar as variaveis de ambiente: %v", err)
-		panic(err)
+		os.Exit(1)
 	}
-	server.InitApiV1()
+	server := server.NewServer()
+	server.Run()
 }
