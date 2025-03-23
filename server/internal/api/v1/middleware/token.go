@@ -85,14 +85,14 @@ func (tkn token) DecodeToken(cookie string) (primitive.M, error) {
 	})
 
 	if err != nil {
-		logger.Error("(Token) Token expirado")
-		return nil, err
+		logger.Error("(Token) Token expirado: %v", err)
+		return nil, fmt.Errorf("access unauthorized")
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok || !token.Valid {
-		logger.Error("(Token) Token inválido")
-		return nil, err
+		logger.Error("(Token) Token inválido: %v", err)
+		return nil, fmt.Errorf("access unauthorized")
 	}
 	logger.Info("(Token) Token válido")
 	data := bson.M{

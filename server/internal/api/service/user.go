@@ -30,20 +30,8 @@ func NewUserService(user repository.UserRepository, invite repository.InviteRepo
 }
 
 func (service *userService) GetUsersExceptID(username, cookieToken string, pagination *middleware.Pagination) (*[]entity.User, int, error) {
-	logger.Info("Decodificando token...")
-	data, err := middleware.NewMiddlewareToken().DecodeToken(cookieToken)
+	id, err := service.extractUserID(cookieToken)
 	if err != nil {
-		logger.Error("Erro ao decodificar o token: %v", err)
-		return nil, 0, fmt.Errorf("access unauthorized")
-	}
-	idString, ok := data["id"].(string)
-	if !ok {
-		logger.Error("ID do usuário ausente ou inválido no token")
-		return nil, 0, fmt.Errorf("error internal server")
-	}
-	id, err := primitive.ObjectIDFromHex(idString)
-	if err != nil {
-		logger.Error("Erro ao converter o ID string para ObjectID: %v", err)
 		return nil, 0, err
 	}
 	if username == "" {
@@ -62,6 +50,85 @@ func (service *userService) GetUsersExceptID(username, cookieToken string, pagin
 		return nil, 0, err
 	}
 	return service.mapInvitesAndContactsToUsers(id, users, totalUsers)
+}
+
+func (userService *userService) CreateUser(user *entity.User) error {
+	logger.Info("Validando e criando usuário...")
+	if err := user.ValidateCreateUser(); err != nil {
+		logger.Error("Erro ao validar o usuário: %v", err)
+		return err
+	}
+	logger.Info("Procurando se o usuário já está cadastrado no banco")
+	data, _ := userService.userRepository.FindUsername(user.Username)
+	dataUserNameLower := strings.ToLower(data.Username)
+	userNameLower := strings.ToLower(user.Username)
+	if dataUserNameLower == userNameLower {
+		err := fmt.Errorf("nome de usuário já cadastrado")
+		logger.Error("Erro ao cadastrar o usuário: %v", err)
+		return err
+	}
+	logger.Info("O usuário não existe, a conta será criada")
+	if err := user.EncodePassword(); err != nil {
+		logger.Error("Erro ao criptografar a senha %v", err)
+		return err
+	}
+	err := userService.userRepository.InsertUser(user)
+	if err != nil {
+		logger.Error("Erro ao inserir o usuário no banco de dados: %v", err)
+		return err
+	}
+	return nil
+}
+
+func (userService *userService) Authentication(user *entity.User) (*entity.User, error) {
+	logger.Info("Buscando o usuário...")
+	data, err := userService.userRepository.FindUsername(user.Username)
+	logger.Info("Validando a credenciais...")
+	if err != nil {
+		logger.Error("Erro ao autenticar o usuário: %v", err)
+		return nil, fmt.Errorf("usuário e/ou senha inválido(s)")
+	}
+	if err := user.ComparePassword(data.HashPassword); err != nil {
+		logger.Error("Erro ao validar a senha: %v", err)
+		return nil, fmt.Errorf("usuário e/ou senha inválido(s)")
+	}
+	logger.Info("Credenciais válidas")
+	data.HashPassword = ""
+	data.CreatedAt = time.UnixMilli(data.CreatedAtMilliseconds).UTC().Format(time.RFC3339)
+	return data, nil
+}
+
+func (service *userService) GetContacts(cookieToken string, pagination *middleware.Pagination, group, username string) (*[]entity.User, int, error) {
+	id, err := service.extractUserID(cookieToken)
+	if err != nil {
+		return nil, 0, err
+	}
+	if group == "added" {
+		return service.getAddedContacts(id, username, pagination)
+	}
+	searchField, validGroup := map[string]string{
+		"received": "userIdInvited",
+		"sent":     "userIdInviter",
+	}[group]
+	if !validGroup {
+		logger.Error("Grupo inválido: %s", group)
+		return nil, 0, fmt.Errorf("invalid group")
+	}
+	userIDs, err := service.getUserIDsFromInvites(id, searchField)
+	if err != nil {
+		return nil, 0, err
+	}
+	if len(userIDs) == 0 {
+		logger.Warn("Nenhum usuário a partir dos convites")
+		return nil, 0, nil
+	}
+	filter := service.mountFilterByUserIDs(userIDs, username)
+	users, totalUsers, err := service.userRepository.GetUsersWithFilter(filter, pagination)
+	if err != nil {
+		logger.Error("Erro ao buscar os usuários: %v", err)
+		return nil, 0, err
+	}
+	return service.mapInvitesToUsers(id.Hex(), users, totalUsers)
 }
 
 func (service *userService) mapInvitesAndContactsToUsers(userID primitive.ObjectID, users *[]entity.User, totalUsers int) (*[]entity.User, int, error) {
@@ -167,97 +234,6 @@ func (service *userService) mountContactMap(userID string, contacts []entity.Con
 	return contactMap
 }
 
-func (userService *userService) CreateUser(user *entity.User) error {
-	logger.Info("Validando e criando usuário...")
-	if err := user.ValidateCreateUser(); err != nil {
-		logger.Error("Erro ao validar o usuário: %v", err)
-		return err
-	}
-	logger.Info("Procurando se o usuário já está cadastrado no banco")
-	data, _ := userService.userRepository.FindUsername(user.Username)
-	dataUserNameLower := strings.ToLower(data.Username)
-	userNameLower := strings.ToLower(user.Username)
-	if dataUserNameLower == userNameLower {
-		err := fmt.Errorf("nome de usuário já cadastrado")
-		logger.Error("Erro ao cadastrar o usuário: %v", err)
-		return err
-	}
-	logger.Info("O usuário não existe, a conta será criada")
-	if err := user.EncodePassword(); err != nil {
-		logger.Error("Erro ao criptografar a senha %v", err)
-		return err
-	}
-	err := userService.userRepository.InsertUser(user)
-	if err != nil {
-		logger.Error("Erro ao inserir o usuário no banco de dados: %v", err)
-		return err
-	}
-	return nil
-}
-
-func (userService *userService) Authentication(user *entity.User) (*entity.User, error) {
-	logger.Info("Buscando o usuário...")
-	data, err := userService.userRepository.FindUsername(user.Username)
-	logger.Info("Validando a credenciais...")
-	if err != nil {
-		logger.Error("Erro ao autenticar o usuário: %v", err)
-		return nil, fmt.Errorf("usuário e/ou senha inválido(s)")
-	}
-	if err := user.ComparePassword(data.HashPassword); err != nil {
-		logger.Error("Erro ao validar a senha: %v", err)
-		return nil, fmt.Errorf("usuário e/ou senha inválido(s)")
-	}
-	logger.Info("Credenciais válidas")
-	data.HashPassword = ""
-	data.CreatedAt = time.UnixMilli(data.CreatedAtMilliseconds).UTC().Format(time.RFC3339)
-	return data, nil
-}
-
-func (service *userService) GetContacts(cookieToken string, pagination *middleware.Pagination, group, username string) (*[]entity.User, int, error) {
-	logger.Info("Obtendo informações armazenadas no cookie")
-	data, err := middleware.NewMiddlewareToken().DecodeToken(cookieToken)
-	if err != nil {
-		logger.Error("Erro ao decodificar o cookie: %v", err)
-		return nil, 0, fmt.Errorf("access unauthorized")
-	}
-	userIdLogged, ok := data["id"].(string)
-	if !ok {
-		logger.Error("ID do usuário ausente ou inválido no token")
-		return nil, 0, fmt.Errorf("error internal server")
-	}
-	objectID, err := service.convertStringToObjectID(userIdLogged)
-	if err != nil {
-		return nil, 0, err
-	}
-	if group == "added" {
-		return service.getAddedContacts(objectID, username, pagination)
-	}
-	searchField, validGroup := map[string]string{
-		"received": "userIdInvited",
-		"sent":     "userIdInviter",
-	}[group]
-	if !validGroup {
-		logger.Error("Grupo inválido: %s", group)
-		return nil, 0, fmt.Errorf("invalid group")
-	}
-	userIDs, err := service.getUserIDsFromInvites(objectID, searchField)
-	if err != nil {
-		logger.Error("Error ao buscar os usuários a partir dos convites: %v", err)
-		return nil, 0, err
-	}
-	if len(userIDs) == 0 {
-		logger.Warn("Nenhum usuário a partir dos convites")
-		return nil, 0, nil
-	}
-	filter := service.mountFilterByUserIDs(userIDs, username)
-	users, totalUsers, err := service.userRepository.GetUsersWithFilter(filter, pagination)
-	if err != nil {
-		logger.Error("Erro ao buscar os usuários: %v", err)
-		return nil, 0, err
-	}
-	return service.mapInvitesToUsers(userIdLogged, users, totalUsers)
-}
-
 func (service *userService) getAddedContacts(userIdLogged primitive.ObjectID, username string, pagination *middleware.Pagination) (*[]entity.User, int, error) {
 	logger.Info("Buscando os contatos do usuário logado")
 	contacts, err := service.contactRepository.GetContactsByUser(userIdLogged)
@@ -302,6 +278,7 @@ func (service *userService) getUserIDsFromInvites(userIdLogged primitive.ObjectI
 	logger.Info("Filtrando convites pelo campo '%s'", searchField)
 	invites, err := service.inviteRepository.FindInvitesByUsers(userIdLogged, []primitive.ObjectID{}, searchField)
 	if err != nil {
+		logger.Error("Error ao buscar os usuários a partir dos convites: %v", err)
 		return nil, err
 	}
 	logger.Info("Acessando os convites para extrair os IDs dos usuário")
@@ -315,6 +292,26 @@ func (service *userService) getUserIDsFromInvites(userIdLogged primitive.ObjectI
 	}
 	logger.Info("Retornando %d IDs", len(userIDs))
 	return userIDs, nil
+}
+
+func (service *userService) extractUserID(cookieToken string) (primitive.ObjectID, error) {
+	logger.Info("Decodificando token...")
+	data, err := middleware.NewMiddlewareToken().DecodeToken(cookieToken)
+	if err != nil {
+		logger.Error("Erro ao decodificar o token: %v", err)
+		return primitive.ObjectID{}, fmt.Errorf(internalServerError)
+	}
+	logger.Info("Extraindo ID do usuário que enviou o convite")
+	id, ok := data["id"].(string)
+	if !ok {
+		logger.Error("ID do usuário ausente ou inválido no token")
+		return primitive.ObjectID{}, fmt.Errorf(internalServerError)
+	}
+	objectID, err := service.convertStringToObjectID(id)
+	if err != nil {
+		return primitive.ObjectID{}, err
+	}
+	return objectID, nil
 }
 
 func (service *userService) convertStringToObjectID(id string) (primitive.ObjectID, error) {

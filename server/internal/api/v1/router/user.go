@@ -12,7 +12,7 @@ func UserRouters(router *gin.RouterGroup, database *mongo.Database) {
 	rt := router.Group("/user")
 	handler := injector.InitializeUser(database)
 	middleware := middleware.NewMiddlewareToken()
-	rt.GET("/search", handler.GetUsers)
+	rt.GET("/search", middleware.ValidateCookie, handler.GetUsers)
 	rt.POST("/create", handler.CreateUser)
 	rt.POST("/authentication", handler.Authentication)
 	rt.GET("/validate/authentication", middleware.ValidateCookie, handler.GetUserToken)
