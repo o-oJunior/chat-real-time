@@ -11,6 +11,7 @@ import (
 func InitializeInvite(database *mongo.Database) handler.InviteHandler {
 	inviteRepository := repository.NewInviteRepository(database)
 	contactRepository := repository.NewContactRepository(database)
-	inviteService := service.NewInviteService(inviteRepository, contactRepository)
+	notificationRepository := repository.NewNotificationRepository(database)
+	inviteService := service.NewInviteService(inviteRepository, contactRepository, notificationRepository)
 	return handler.NewInviteHandler(inviteService)
 }

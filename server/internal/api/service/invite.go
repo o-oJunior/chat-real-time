@@ -16,13 +16,16 @@ type InviteService interface {
 }
 
 type inviteService struct {
-	inviteRepository  repository.InviteRepository
-	contactRepository repository.ContactRepository
+	inviteRepository       repository.InviteRepository
+	contactRepository      repository.ContactRepository
+	notificationRepository repository.NotificationRepository
 }
 
-func NewInviteService(inviteRepository repository.InviteRepository, contactRepository repository.ContactRepository) InviteService {
-	return &inviteService{inviteRepository, contactRepository}
+func NewInviteService(inviteRepository repository.InviteRepository, contactRepository repository.ContactRepository, notificationRepository repository.NotificationRepository) InviteService {
+	return &inviteService{inviteRepository, contactRepository, notificationRepository}
 }
+
+const internalServerError = "error internal server"
 
 func (service *inviteService) InsertInvite(invite *entity.Invite, cookieToken string) error {
 	logger.Info("Validando o registro do convite")
@@ -30,56 +33,48 @@ func (service *inviteService) InsertInvite(invite *entity.Invite, cookieToken st
 		logger.Error("Erro na validação do convite: %v", err)
 		return err
 	}
-	logger.Info("Obtendo informações armazenadas no cookie")
-	middleware := middleware.NewMiddlewareToken()
-	data, err := middleware.DecodeToken(cookieToken)
-	if err != nil {
-		logger.Error("Erro ao decodificar o cookie: %v", err)
-		return err
-	}
-	logger.Info("Extraindo ID do usuário que enviou o convite")
-	id, ok := data["id"].(string)
-	if !ok {
-		logger.Error("ID do usuário ausente ou inválido no token")
-		return fmt.Errorf("error internal server")
-	}
-	objectID, err := service.convertStringToObjectID(id)
+	data, err := service.decodeToken(cookieToken)
 	if err != nil {
 		return err
 	}
-	invite.UserIdInviter = objectID
-	date, err := time.Parse(time.RFC3339, invite.CreatedAt)
+	id, err := service.extractUserID(data)
 	if err != nil {
-		logger.Error("Erro ao fazer o parse da data: %v", err)
 		return err
 	}
-	logger.Info("Inserindo o convite no banco de dados...")
-	invite.CreatedAtAtMilliseconds = date.UnixMilli()
-	invite.CreatedAt = ""
+	invite.UserIdInviter = id
+	err = service.setInviteCreatedAt(invite)
+	if err != nil {
+		return err
+	}
 	if err := service.inviteRepository.InsertInvite(invite); err != nil {
 		logger.Error("Erro ao inserir o convite no banco de dados: %v", err)
-		return fmt.Errorf("error internal server")
+		return fmt.Errorf(internalServerError)
 	}
 	logger.Info("Sucesso ao inserir o convite no banco de dados!")
+	username, err := service.extractUsername(data)
+	if err != nil {
+		return err
+	}
+	err = service.insertNotification(invite, username)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
 func (service *inviteService) UpdateStatusInvite(invite *entity.Invite, statusInvite string, cookieToken string) error {
 	logger.Info("Atualizando o status do convite")
-	middleware := middleware.NewMiddlewareToken()
-	data, err := middleware.DecodeToken(cookieToken)
+	data, err := service.decodeToken(cookieToken)
 	if err != nil {
-		logger.Error("Erro ao decodificar o cookie: %v", err)
 		return err
 	}
-	idString := data["id"].(string)
+	id, err := service.extractUserID(data)
+	if err != nil {
+		return err
+	}
 	logger.Info("Verificando se existe convites entre os usuários")
 	var userIDs = []primitive.ObjectID{invite.UserIdInvited, invite.UserIdInviter}
-	objectID, err := service.convertStringToObjectID(idString)
-	if err != nil {
-		return err
-	}
-	invites, err := service.inviteRepository.FindInvitesByUsers(objectID, userIDs, "")
+	invites, err := service.inviteRepository.FindInvitesByUsers(id, userIDs, "")
 	if err != nil {
 		logger.Error("Err ao buscar os convites: %v", err)
 		return err
@@ -96,7 +91,7 @@ func (service *inviteService) UpdateStatusInvite(invite *entity.Invite, statusIn
 		logger.Info("Adicionando contato e deletando o convite...")
 		err = service.insertContact(invite)
 		if err != nil {
-			return fmt.Errorf("error internal server")
+			return err
 		}
 		err = service.inviteRepository.DeleteInviteById(inviteID)
 	} else {
@@ -104,7 +99,7 @@ func (service *inviteService) UpdateStatusInvite(invite *entity.Invite, statusIn
 		err = service.inviteRepository.UpdateStatusInvite(inviteID, statusInvite)
 	}
 	if err != nil {
-		return fmt.Errorf("error internal server")
+		return fmt.Errorf(internalServerError)
 	}
 	logger.Info("Sucesso ao atualizar o convite!")
 	return nil
@@ -122,17 +117,84 @@ func (service *inviteService) insertContact(invite *entity.Invite) error {
 	err := service.contactRepository.InsertContact(contact)
 	if err != nil {
 		logger.Error("Erro ao adicionar o contato: %v", err)
-		return err
+		return fmt.Errorf(internalServerError)
 	}
 	logger.Info("Contato adicionado com sucesso!")
 	return nil
+}
+
+func (service *inviteService) insertNotification(invite *entity.Invite, username string) error {
+	logger.Info("Registrando a notificação...")
+	timestamp := time.Now().UnixMilli()
+	message := fmt.Sprintf("<b>%s</b> enviou uma solicitação de contato.", username)
+	notification := &entity.Notification{
+		Message:      message,
+		UserIdTarget: invite.UserIdInvited,
+		UserIdActor:  invite.UserIdInviter,
+		Type:         "invite",
+		CreatedAt:    timestamp,
+	}
+	err := service.notificationRepository.InsertNotification(notification)
+	if err != nil {
+		logger.Error("Erro ao registrar a notificação: %v", err)
+		return err
+	}
+	logger.Info("Notificação registrada com sucesso!")
+	return nil
+}
+
+func (service *inviteService) decodeToken(cookieToken string) (primitive.M, error) {
+	logger.Info("Obtendo informações armazenadas no cookie")
+	data, err := middleware.NewMiddlewareToken().DecodeToken(cookieToken)
+	if err != nil {
+		logger.Error("Erro ao decodificar o cookie: %v", err)
+		return primitive.M{}, fmt.Errorf(internalServerError)
+	}
+	return data, nil
+}
+
+func (service *inviteService) extractUsername(data primitive.M) (string, error) {
+	logger.Info("Extraindo username do usuário que enviou o convite")
+	username, ok := data["username"].(string)
+	if !ok {
+		logger.Error("Nome de usuário ausente ou inválido no token")
+		return "", fmt.Errorf(internalServerError)
+	}
+	logger.Info("Nome de usuário extraído com sucesso.")
+	return username, nil
+}
+
+func (service *inviteService) extractUserID(data primitive.M) (primitive.ObjectID, error) {
+	logger.Info("Extraindo ID do usuário que enviou o convite")
+	id, ok := data["id"].(string)
+	if !ok {
+		logger.Error("ID do usuário ausente ou inválido no token")
+		return primitive.ObjectID{}, fmt.Errorf(internalServerError)
+	}
+	objectID, err := service.convertStringToObjectID(id)
+	if err != nil {
+		return primitive.ObjectID{}, err
+	}
+	return objectID, nil
 }
 
 func (service *inviteService) convertStringToObjectID(id string) (primitive.ObjectID, error) {
 	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		logger.Error("Erro ao converter ID (string) para ObjectID: %v", err)
-		return primitive.ObjectID{}, fmt.Errorf("error internal server")
+		return primitive.ObjectID{}, fmt.Errorf(internalServerError)
 	}
 	return objectID, nil
+}
+
+func (service *inviteService) setInviteCreatedAt(invite *entity.Invite) error {
+	date, err := time.Parse(time.RFC3339, invite.CreatedAt)
+	if err != nil {
+		logger.Error("Erro ao fazer o parse da data: %v", err)
+		return err
+	}
+	logger.Info("Inserindo o convite no banco de dados...")
+	invite.CreatedAtAtMilliseconds = date.UnixMilli()
+	invite.CreatedAt = ""
+	return nil
 }
