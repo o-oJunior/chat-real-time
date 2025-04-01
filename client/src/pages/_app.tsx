@@ -3,6 +3,7 @@ import type { AppProps } from "next/app"
 import Head from "next/head"
 import Providers from "../redux/providers"
 import Authentication from "./authentication"
+import Notification from "./notification"
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
@@ -12,7 +13,9 @@ export default function App({ Component, pageProps }: AppProps) {
           <link rel="icon" href="/gopher.png" />
         </Head>
         <Authentication>
-          <Component {...pageProps} />
+          <Notification>
+            <Component {...pageProps} />
+          </Notification>
         </Authentication>
       </Providers>
     </>

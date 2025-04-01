@@ -22,6 +22,7 @@ const Sidebar = () => {
     if (result.statusCode !== 200) {
       return alert("Erro ao sair da conta")
     }
+    localStorage.removeItem("user")
     dispatch(userLogout())
     handleNavigation("/login")
   }

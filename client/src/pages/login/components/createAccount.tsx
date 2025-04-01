@@ -1,4 +1,4 @@
-import API_V1_USER from "@/api/v1/user"
+import UserAPIService from "@/api/v1/user"
 import Input from "@/components/input/input"
 import { IResponse } from "@/interfaces/response"
 import Head from "next/head"
@@ -154,8 +154,8 @@ const CreateAccount = ({ toggleAuthentication }: Props) => {
     if (inputsInvalid.length != 0) {
       return setMessageError("Preencha os campos corretamente!")
     }
-    const v1 = new API_V1_USER()
-    const result: IResponse = await v1.createUser(createUser)
+    const userService = new UserAPIService()
+    const result: IResponse = await userService.createUser(createUser)
     if (result.statusCode !== 201) {
       return setMessageError(result.message)
     }

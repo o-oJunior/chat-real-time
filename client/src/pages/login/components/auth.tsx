@@ -1,11 +1,13 @@
-import API_V1_USER from "@/api/v1/user"
+import UserAPIService from "@/api/v1/user"
+import WebSocketService from "@/api/v1/websocket"
 import Input from "@/components/input/input"
 import { IResponse } from "@/interfaces/response"
 import { useAppSelector } from "@/redux/hook"
-import { useUser } from "@/redux/user/slice"
+import { addUserData, useUser } from "@/redux/user/slice"
 import Head from "next/head"
 import { useRouter } from "next/router"
 import React, { ChangeEvent, FormEvent, useEffect, useState } from "react"
+import { useDispatch } from "react-redux"
 
 type UserAuth = {
   username: string
@@ -23,6 +25,7 @@ const Auth = ({ toggleAuthentication }: Props) => {
   const [messageError, setMessageError] = useState<string>("")
   const { user } = useAppSelector(useUser)
   const router = useRouter()
+  const dispatch = useDispatch()
 
   const handleChangeInput = (event: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target
@@ -84,11 +87,15 @@ const Auth = ({ toggleAuthentication }: Props) => {
     if (userAuth.username.trim() == "" || userAuth.password == "") {
       return setMessageError("Preencha todos os campos!")
     }
-    const v1 = new API_V1_USER()
-    const result: IResponse = await v1.userAuthentication(userAuth)
+    const userService = new UserAPIService()
+    const result: IResponse = await userService.userAuthentication(userAuth)
     if (result.statusCode !== 200) {
       return setMessageError(result.message)
     }
+    localStorage.setItem("user", JSON.stringify(result.data))
+    dispatch(addUserData(result.data))
+    const webSocketService = new WebSocketService()
+    webSocketService.connectWebSocket(result.data.id, null)
     setMessageError("")
     router.push("/")
   }

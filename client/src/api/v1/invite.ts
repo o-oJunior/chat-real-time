@@ -1,20 +1,23 @@
-import { InviteStatus } from "@/components/list/listUser";
+import { InviteStatus } from "@/components/list/listUser"
 
-const MESSAGE_ERROR = { statusCode: 500, error: "Erro na conexão com o servidor, tente novamente mais tarde!" };
+const MESSAGE_ERROR = {
+  statusCode: 500,
+  error: "Erro na conexão com o servidor, tente novamente mais tarde!",
+}
 
 export interface Invite {
-  userIdInviter?: string;
-  inviteStatus?: InviteStatus;
+  userIdInviter?: string
+  inviteStatus?: InviteStatus
 }
 
 export default class InviteAPIService {
-  private readonly BASE_URL: string;
+  private readonly BASE_URL: string
 
   constructor() {
     if (!process.env.NEXT_PUBLIC_URL_API_V1) {
-      throw new Error("A variável de ambiente NEXT_PUBLIC_URL_API_V1 não está definida.");
+      throw new Error("A variável de ambiente NEXT_PUBLIC_URL_API_V1 não está definida.")
     }
-    this.BASE_URL = process.env.NEXT_PUBLIC_URL_API_V1;
+    this.BASE_URL = process.env.NEXT_PUBLIC_URL_API_V1
   }
 
   async sendInvite(invite: Invite) {
@@ -26,10 +29,10 @@ export default class InviteAPIService {
         },
         credentials: "include",
         body: JSON.stringify(invite),
-      });
-      return await response.json();
+      })
+      return await response.json()
     } catch (error) {
-      return MESSAGE_ERROR;
+      return MESSAGE_ERROR
     }
   }
 
@@ -42,16 +45,16 @@ export default class InviteAPIService {
         },
         credentials: "include",
         body: JSON.stringify(invite),
-      });
+      })
 
       if (!response.ok) {
-        throw new Error(`Erro ao atualizar status do convite: ${response.status} - ${response.statusText}`);
+        throw new Error(`Erro ao atualizar status do convite: ${response.status} - ${response.statusText}`)
       }
 
-      return await response.json();
+      return await response.json()
     } catch (error) {
-      console.error("Erro em updateStatusInvite:", error);
-      return MESSAGE_ERROR;
+      console.error("Erro em updateStatusInvite:", error)
+      return MESSAGE_ERROR
     }
   }
 }

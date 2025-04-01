@@ -1,11 +1,12 @@
 import { useRouter } from "next/router"
 import { useEffect, useState } from "react"
-import { addUserData, useUser } from "../redux/user/slice"
+import { addUserData, initialValueUser, useUser } from "../redux/user/slice"
 import { useDispatch } from "react-redux"
 import { useAppSelector } from "@/redux/hook"
 import Sidebar from "@/components/sidebar/sidebar"
-import API_V1_USER from "@/api/v1/user"
 import AlertModal, { AlertProps, initialValueAlert } from "@/components/modal/alert"
+import WebSocketService from "@/api/v1/websocket"
+import { addNotification } from "@/redux/websocket/slice"
 
 const Authentication = ({ children }: { children: React.ReactNode }) => {
   const [alert, setAlert] = useState<AlertProps>(initialValueAlert)
@@ -15,27 +16,28 @@ const Authentication = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const nowMS = new Date().getTime()
-    const expiresAt = user.expiresAt * 1000
-    if (user.username == "" || nowMS >= expiresAt) {
-      validateAuthentication()
+    const userLocalStorage = localStorage.getItem("user")
+    let userData = { ...initialValueUser, expiresAt: 0 }
+    if (userLocalStorage && userLocalStorage !== "") {
+      userData = JSON.parse(userLocalStorage)
+    }
+    const expiresAt = userData.expiresAt * 1000
+    if (nowMS >= expiresAt) {
+      localStorage.removeItem("user")
+      router.push("/login")
+    } else {
+      const webSocketService = WebSocketService.getInstance()
+      webSocketService.connectWebSocket(userData.id, handleMessageWebSocket)
+      dispatch(addUserData(userData))
     }
     validatePageNotFound()
-  }, [user, router.pathname])
+  }, [router.pathname])
 
-  const validateAuthentication = async () => {
-    const v1 = new API_V1_USER()
-    const result = await v1.validateAuthentication()
-    if (!result.data || result.statusCode !== 200) {
-      if (result.error) {
-        setAlert({
-          message: result.error,
-          type: "error",
-          modalOpen: true,
-        })
-      }
-      return router.push("/login")
+  const handleMessageWebSocket = (ev: MessageEvent) => {
+    const data = JSON.parse(ev.data)
+    if (data.type === "notification") {
+      dispatch(addNotification(data))
     }
-    dispatch(addUserData(result.data))
   }
 
   const validatePageNotFound = () => {
@@ -53,13 +55,12 @@ const Authentication = ({ children }: { children: React.ReactNode }) => {
       ) : (
         <div>
           <div>{children}</div>
-          {alert.modalOpen && (
-            <AlertModal
-              type={alert.type}
-              message={alert.message}
-              onClose={() => setAlert(initialValueAlert)}
-            />
-          )}
+          <AlertModal
+            type={alert.type}
+            message={alert.message}
+            isOpen={alert.modalOpen}
+            onClose={() => setAlert(initialValueAlert)}
+          />
         </div>
       )}
     </>
