@@ -107,8 +107,13 @@ func (handler *userHandler) Authentication(ctx *gin.Context) {
 		response.SendError(ctx, http.StatusUnauthorized, err.Error())
 		return
 	}
-	newMiddlewareToken := middleware.NewMiddlewareToken()
-	token, err := newMiddlewareToken.Generate(data)
+	middleware := middleware.NewMiddlewareToken()
+	token, err := middleware.Generate(data)
+	if err != nil {
+		response.SendError(ctx, http.StatusInternalServerError, err.Error())
+		return
+	}
+	userData, err := middleware.DecodeToken(token)
 	if err != nil {
 		response.SendError(ctx, http.StatusInternalServerError, err.Error())
 		return
@@ -116,7 +121,7 @@ func (handler *userHandler) Authentication(ctx *gin.Context) {
 	logger.Info("Token gerado, será armazenado nos cookies")
 	ctx.SetSameSite(http.SameSiteNoneMode)
 	ctx.SetCookie("token", token, int(time.Hour*24), "/", "", true, true)
-	response.SendSuccess(ctx, http.StatusOK, "login efetuado com sucesso!", nil)
+	response.SendSuccess(ctx, http.StatusOK, "login efetuado com sucesso!", userData)
 }
 
 func (handler *userHandler) Logout(ctx *gin.Context) {

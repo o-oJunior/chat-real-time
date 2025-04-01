@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"server/internal/api/v1/router"
+	"server/internal/api/v1/websocket"
 	"server/internal/config"
 	"server/internal/config/mongodb"
 
@@ -34,6 +35,8 @@ func NewServer() *Server {
 		AllowCredentials: true,
 		MaxAge:           0,
 	}))
+
+	websocket.Router(rt)
 
 	v1 := rt.Group("/api/v1")
 	router.UserRouters(v1, database)

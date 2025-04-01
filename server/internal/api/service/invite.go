@@ -5,6 +5,7 @@ import (
 	"server/internal/api/entity"
 	"server/internal/api/repository"
 	"server/internal/api/v1/middleware"
+	"server/internal/api/v1/websocket"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -55,9 +56,14 @@ func (service *inviteService) InsertInvite(invite *entity.Invite, cookieToken st
 	if err != nil {
 		return err
 	}
-	err = service.insertNotification(invite, username)
+	message := fmt.Sprintf("<b>%s</b> enviou uma solicitação de contato.", username)
+	err = service.insertNotification(invite, message)
 	if err != nil {
 		return err
+	}
+	err = websocket.SendMessageToUser(invite.UserIdInvited.Hex(), message, "notification")
+	if err != nil {
+		logger.Error("Erro ao enviar a notificação via WebSocket: %v", err)
 	}
 	return nil
 }
@@ -123,10 +129,9 @@ func (service *inviteService) insertContact(invite *entity.Invite) error {
 	return nil
 }
 
-func (service *inviteService) insertNotification(invite *entity.Invite, username string) error {
+func (service *inviteService) insertNotification(invite *entity.Invite, message string) error {
 	logger.Info("Registrando a notificação...")
 	timestamp := time.Now().UnixMilli()
-	message := fmt.Sprintf("<b>%s</b> enviou uma solicitação de contato.", username)
 	notification := &entity.Notification{
 		Message:      message,
 		UserIdTarget: invite.UserIdInvited,
