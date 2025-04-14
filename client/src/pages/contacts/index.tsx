@@ -223,7 +223,6 @@ const Contacts = () => {
             query={search.contacts}
           />
           <button
-            type="submit"
             className="bg-gray-500 text-white py-2 px-4 rounded-md hover:bg-gray-600 focus:outline-none focus:bg-gray-600"
             onClick={handleModal}
           >

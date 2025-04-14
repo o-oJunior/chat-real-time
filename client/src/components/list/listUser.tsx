@@ -44,7 +44,7 @@ const ListUser = ({ users, userIdLogged, text, handleInvite }: Props) => {
           statusKey = item.inviteStatus ? statusInvite : "none"
         }
         return (
-          <Card>
+          <Card includeButtonClose={false}>
             <div className="flex flex-row justify-between w-full">
               <div className="flex flex-col gap-1">
                 <span className="flex flex-wrap">{item.username}</span>

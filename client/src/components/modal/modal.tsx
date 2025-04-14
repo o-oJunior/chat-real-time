@@ -1,5 +1,6 @@
 import React from "react"
 import ReactDOM from "react-dom"
+import ButtonClose from "../button/close"
 
 type positionX = "left" | "center" | "right"
 type positionY = "top" | "center" | "bottom"
@@ -12,7 +13,7 @@ type Props = {
   xPosition?: positionX
   yPosition?: positionY
   positionClose?: positionClose
-  onClose?: () => void
+  onClose: () => void
 }
 
 const Modal = ({
@@ -50,24 +51,7 @@ const Modal = ({
   return ReactDOM.createPortal(
     <div className={`fixed ${classAddittional}`}>
       <div className={`bg-white h-5/6 rounded-lg shadow-lg max-w-lg w-full ${padding}`}>
-        <button
-          onClick={onClose}
-          className={`text-gray-600 hover:text-gray-900 focus:outline-none float-${positionClose}`}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className={classIcon}
-          >
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
+        <ButtonClose onClose={onClose} position={positionClose} styleIcon={classIcon} />
         <div className={classChildren}>{children}</div>
       </div>
     </div>,

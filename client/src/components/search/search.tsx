@@ -8,7 +8,7 @@ type Props = {
 }
 export default function Search({ query, textPlaceholder, handleChangeInput, nameInput }: Props) {
   return (
-    <form className="flex items-center max-w-lg w-full">
+    <div className="flex items-center max-w-lg w-full">
       <input
         type="text"
         value={query}
@@ -37,6 +37,6 @@ export default function Search({ query, textPlaceholder, handleChangeInput, name
           />
         </svg>
       </button>
-    </form>
+    </div>
   )
 }
